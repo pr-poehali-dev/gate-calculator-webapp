@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Icon from '@/components/ui/icon';
 import GateSketch, { GateType, FillType } from '@/components/GateSketch';
 
@@ -256,6 +256,7 @@ interface KpData {
   lineItems: { label: string; value: number }[];
   subtotal: number; markup: number; markupAmt: number; total: number;
   gateArea: number; wicketArea: number;
+  fillLabel: string;
   savedAt: string;
 }
 
@@ -297,7 +298,7 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
         ${data.hasWicket ? `<tr><td>Калитка</td><td>${(data.wicketW/1000).toFixed(2)} м × ${(data.wicketH/1000).toFixed(2)} м</td></tr>` : ''}
         ${data.autoLabel !== 'Без автоматики' ? `<tr class="tr-alt"><td>Автоматика</td><td>${data.autoLabel}</td></tr>` : ''}
         ${data.extras.map((e,i) => `<tr${i%2===0?' class="tr-alt"':''}><td>Доп. опция</td><td>${e}</td></tr>`).join('')}
-        <tr><td>Заполнение</td><td>${FILL_LABELS[data.fillType]}</td></tr>
+        <tr><td>Заполнение</td><td>${data.fillLabel}</td></tr>
       </tbody>
     </table>
     ${(data.installAuto || data.installFill || data.installGate || data.installFrame || (data.hasWicket && data.installWicket)) ? `
@@ -366,7 +367,7 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
               { label: 'Тип ворот', val: data.gateType === 'sliding' ? 'Откатные' : data.gateType === 'swing' ? 'Распашные' : 'Распашные с калиткой' },
               { label: 'Размер', val: `${(data.gateW/1000).toFixed(2)} м × ${(data.gateH/1000).toFixed(2)} м` },
               { label: 'Площадь полотна', val: `${data.gateArea.toFixed(2)} м²` },
-              { label: 'Заполнение', val: FILL_LABELS[data.fillType] },
+              { label: 'Заполнение', val: data.fillLabel },
               ...(data.hasWicket ? [{ label: 'Калитка', val: `${(data.wicketW/1000).toFixed(2)} × ${(data.wicketH/1000).toFixed(2)} м` }] : []),
               ...(data.autoLabel !== 'Без автоматики' ? [{ label: 'Автоматика', val: data.autoLabel }] : []),
             ].map((row, i) => (
@@ -393,7 +394,7 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
                   { label: 'Площадь', val: `${data.gateArea.toFixed(2)} м²${data.hasWicket ? ` + ${data.wicketArea.toFixed(2)} м² (калитка)` : ''}` },
                   ...(data.isNonStd ? [{ label: 'Надбавка', val: 'Нестандартный размер +5%' }] : []),
                   ...(data.hasWicket ? [{ label: 'Калитка', val: `${(data.wicketW/1000).toFixed(2)} × ${(data.wicketH/1000).toFixed(2)} м` }] : []),
-                  { label: 'Заполнение', val: FILL_LABELS[data.fillType] },
+                  { label: 'Заполнение', val: data.fillLabel },
                   ...(data.autoLabel !== 'Без автоматики' ? [{ label: 'Автоматика', val: data.autoLabel }] : []),
                   ...data.extras.map(e => ({ label: 'Доп. опция', val: e })),
                 ].map((row, i) => (
@@ -551,41 +552,39 @@ export default function Index() {
   // History
   const [history, setHistory] = useState<KpData[]>([]);
 
-  // Editable prices (legacy, used in calcs)
-  const [gatePrices, setGatePrices] = useState({ ...DEFAULT_GATE_PRICES });
-  const [fillPrices, setFillPrices] = useState({ ...DEFAULT_FILL_PRICES });
-  const [wicketPrice, setWicketPrice] = useState(DEFAULT_WICKET_PRICE);
-  const [instAuto, setInstAuto]   = useState(DEFAULT_INST_AUTO);
-  const [instFillM2, setInstFillM2] = useState(DEFAULT_INST_FILL_M2);
-  const [instGate, setInstGate]   = useState(DEFAULT_INST_GATE);
-  const [instFrame, setInstFrame] = useState(DEFAULT_INST_FRAME);
-  const [instWicket, setInstWicketP] = useState(DEFAULT_INST_WICKET);
+  // ── Единый источник истины для настроек (с localStorage) ───────────────────
+  const LS_KEY = 'mkc_settings_v1';
 
-  // ── Dynamic admin sections ──────────────────────────────────────────────────
-  const [secTitles, setSecTitles] = useState({
-    gate:     'ТИПЫ ВОРОТ',
-    fill:     'ЗАПОЛНЕНИЕ',
-    install:  'МОНТАЖНЫЕ РАБОТЫ',
-    extras:   'ДОПТОВАРЫ',
-    auto:     'АВТОМАТИКА',
+  function loadSettings() {
+    try {
+      const s = localStorage.getItem(LS_KEY);
+      if (s) return JSON.parse(s) as Record<string, unknown>;
+    } catch (e) { /* ignore */ }
+    return null;
+  }
+
+  const saved = loadSettings();
+
+  const [secTitles, setSecTitlesRaw] = useState<Record<string,string>>(saved?.secTitles ?? {
+    gate: 'ТИПЫ ВОРОТ', fill: 'ЗАПОЛНЕНИЕ', install: 'МОНТАЖНЫЕ РАБОТЫ', extras: 'ДОПТОВАРЫ', auto: 'АВТОМАТИКА',
   });
 
-  const [gateItems, setGateItems] = useState<EditItem[]>([
+  const [gateItems, setGateItemsRaw] = useState<EditItem[]>(saved?.gateItems ?? [
     { id: 'sliding',      label: 'Откатные',            price: DEFAULT_GATE_PRICES.sliding },
     { id: 'swing',        label: 'Распашные',           price: DEFAULT_GATE_PRICES.swing },
     { id: 'swing_wicket', label: 'Распашные + калитка', price: DEFAULT_GATE_PRICES.swing_wicket },
     { id: 'wicket',       label: 'Отдельная калитка',   price: DEFAULT_WICKET_PRICE },
   ]);
 
-  const [fillItems, setFillItems] = useState<EditItem[]>([
-    { id: 'proflist',   label: 'Профлист',        price: DEFAULT_FILL_PRICES.proflist,   suffix: '₽/м²' },
-    { id: 'rancho',     label: 'Ранчо',           price: DEFAULT_FILL_PRICES.rancho,     suffix: '₽/м²' },
-    { id: 'jalusi',     label: 'Жалюзи',          price: DEFAULT_FILL_PRICES.jalusi,     suffix: '₽/м²' },
-    { id: 'siding',     label: 'Металлосайдинг',  price: DEFAULT_FILL_PRICES.siding,     suffix: '₽/м²' },
-    { id: 'shtaketnik', label: 'Штакетник',       price: DEFAULT_FILL_PRICES.shtaketnik, suffix: '₽/м²' },
+  const [fillItems, setFillItemsRaw] = useState<EditItem[]>(saved?.fillItems ?? [
+    { id: 'proflist',   label: 'Профлист',       price: DEFAULT_FILL_PRICES.proflist,   suffix: '₽/м²' },
+    { id: 'rancho',     label: 'Ранчо',          price: DEFAULT_FILL_PRICES.rancho,     suffix: '₽/м²' },
+    { id: 'jalusi',     label: 'Жалюзи',         price: DEFAULT_FILL_PRICES.jalusi,     suffix: '₽/м²' },
+    { id: 'siding',     label: 'Металлосайдинг', price: DEFAULT_FILL_PRICES.siding,     suffix: '₽/м²' },
+    { id: 'shtaketnik', label: 'Штакетник',      price: DEFAULT_FILL_PRICES.shtaketnik, suffix: '₽/м²' },
   ]);
 
-  const [installItems, setInstallItems] = useState<EditItem[]>([
+  const [installItems, setInstallItemsRaw] = useState<EditItem[]>(saved?.installItems ?? [
     { id: 'inst_auto',   label: 'Монтаж автоматики',      price: DEFAULT_INST_AUTO },
     { id: 'inst_fill',   label: 'Установка заполнения',   price: DEFAULT_INST_FILL_M2, suffix: '₽/м²' },
     { id: 'inst_gate',   label: 'Установка ворот',        price: DEFAULT_INST_GATE },
@@ -593,48 +592,86 @@ export default function Index() {
     { id: 'inst_wicket', label: 'Монтаж калитки',         price: DEFAULT_INST_WICKET },
   ]);
 
-  const [extraItems, setExtraItems] = useState<EditItem[]>(
+  const [extraItems, setExtraItemsRaw] = useState<EditItem[]>(saved?.extraItems ??
     EXTRA_OPTIONS.map(o => ({ id: o.id, label: o.label, price: o.price }))
   );
 
-  const [autoItems, setAutoItems] = useState<EditItem[]>(
+  const [autoItems, setAutoItemsRaw] = useState<EditItem[]>(saved?.autoItems ??
     AUTOMATION_OPTIONS.filter(o => o.id !== 'none').map(o => ({ id: o.id, label: o.label, price: o.price }))
   );
 
-  // helper: sync gate prices to calculator state
-  const syncGateItem = (id: string, updated: EditItem) => {
-    setGateItems(prev => prev.map(i => i.id === id ? updated : i));
-    if (id === 'sliding')      setGatePrices(p => ({ ...p, sliding: updated.price }));
-    if (id === 'swing')        setGatePrices(p => ({ ...p, swing: updated.price }));
-    if (id === 'swing_wicket') setGatePrices(p => ({ ...p, swing_wicket: updated.price }));
-    if (id === 'wicket')       setWicketPrice(updated.price);
+  // Автосохранение при любом изменении настроек
+  useEffect(() => {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify({ secTitles, gateItems, fillItems, installItems, extraItems, autoItems }));
+    } catch (e) { /* ignore */ }
+  }, [secTitles, gateItems, fillItems, installItems, extraItems, autoItems]);
+
+  // Обёртки с сохранением
+  const setSecTitles  = (fn: (s: Record<string,string>) => Record<string,string>) => setSecTitlesRaw(fn);
+  const setGateItems  = (fn: (p: EditItem[]) => EditItem[]) => setGateItemsRaw(fn);
+  const setFillItems  = (fn: (p: EditItem[]) => EditItem[]) => setFillItemsRaw(fn);
+  const setInstallItems = (fn: (p: EditItem[]) => EditItem[]) => setInstallItemsRaw(fn);
+  const setExtraItems = (fn: (p: EditItem[]) => EditItem[]) => setExtraItemsRaw(fn);
+  const setAutoItems  = (fn: (p: EditItem[]) => EditItem[]) => setAutoItemsRaw(fn);
+
+  // Производные цены для калькулятора (из gateItems/fillItems/installItems)
+  const gateItemMap    = Object.fromEntries(gateItems.map(i => [i.id, i]));
+  const fillItemMap    = Object.fromEntries(fillItems.map(i => [i.id, i]));
+  const installItemMap = Object.fromEntries(installItems.map(i => [i.id, i]));
+
+  // Цены типов ворот
+  const gateTypePrices: Record<GateType, number> = {
+    sliding:      gateItemMap['sliding']?.price      ?? DEFAULT_GATE_PRICES.sliding,
+    swing:        gateItemMap['swing']?.price        ?? DEFAULT_GATE_PRICES.swing,
+    swing_wicket: gateItemMap['swing_wicket']?.price ?? DEFAULT_GATE_PRICES.swing_wicket,
   };
-  const syncFillItem = (id: string, updated: EditItem) => {
-    setFillItems(prev => prev.map(i => i.id === id ? updated : i));
-    if (id in fillPrices) setFillPrices(p => ({ ...p, [id]: updated.price }));
-  };
-  const syncInstallItem = (id: string, updated: EditItem) => {
-    setInstallItems(prev => prev.map(i => i.id === id ? updated : i));
-    if (id === 'inst_auto')   setInstAuto(updated.price);
-    if (id === 'inst_fill')   setInstFillM2(updated.price);
-    if (id === 'inst_gate')   setInstGate(updated.price);
-    if (id === 'inst_frame')  setInstFrame(updated.price);
-    if (id === 'inst_wicket') setInstWicketP(updated.price);
-  };
+  const wicketPrice = gateItemMap['wicket']?.price ?? DEFAULT_WICKET_PRICE;
+
+  // Цены заполнения — любой id из fillItems
+  const getFillPrice = (id: string) => fillItemMap[id]?.price ?? 0;
+
+  // Цены монтажей
+  const instAuto   = installItemMap['inst_auto']?.price   ?? DEFAULT_INST_AUTO;
+  const instFillM2 = installItemMap['inst_fill']?.price   ?? DEFAULT_INST_FILL_M2;
+  const instGate   = installItemMap['inst_gate']?.price   ?? DEFAULT_INST_GATE;
+  const instFrame  = installItemMap['inst_frame']?.price  ?? DEFAULT_INST_FRAME;
+  const instWicket = installItemMap['inst_wicket']?.price ?? DEFAULT_INST_WICKET;
+
+  // Синхронные handlers для секций
+  const syncGateItem    = (id: string, upd: EditItem) => setGateItems(prev => prev.map(i => i.id === id ? upd : i));
+  const syncFillItem    = (id: string, upd: EditItem) => setFillItems(prev => prev.map(i => i.id === id ? upd : i));
+  const syncInstallItem = (id: string, upd: EditItem) => setInstallItems(prev => prev.map(i => i.id === id ? upd : i));
 
   const makeId = () => Math.random().toString(36).slice(2, 8);
 
-  // Calcs
+  // Calcs — всё из динамических items
   const isNonStd   = gateW > 5000 || gateH > 2500;
   const gateArea   = (gateW * gateH) / 1e6;
   const wicketArea = hasWicket ? (wicketW * wicketH) / 1e6 : 0;
   const totalArea  = gateArea + wicketArea;
-  const baseGate   = gatePrices[gateType] * (isNonStd ? 1.05 : 1);
+  const curGatePrice = gateTypePrices[gateType] ?? 0;
+  const baseGate   = curGatePrice * (isNonStd ? 1.05 : 1);
   const wicketPr   = hasWicket ? wicketPrice : 0;
-  const autoOpt    = AUTOMATION_OPTIONS.find(o => o.id === autoId)!;
-  const autoPr     = autoOpt.price;
-  const fillPr     = fillPrices[fillType] * totalArea;
-  const extrasPr   = [...extras].reduce((s, id) => s + (EXTRA_OPTIONS.find(o => o.id === id)?.price ?? 0), 0);
+
+  // Автоматика — из autoItems (+ статичный none)
+  const allAutoOpts = [
+    { id: 'none', label: 'Без автоматики', price: 0, type: 'any' },
+    ...autoItems.map(i => ({ id: i.id, label: i.label, price: i.price, type: i.id.includes('_s') ? 'sliding' : 'swing' })),
+  ];
+  const filteredAuto = allAutoOpts.filter(o =>
+    o.type === 'any' || o.type === gateType || (gateType === 'swing_wicket' && o.type === 'swing')
+  );
+  const autoOpt = filteredAuto.find(o => o.id === autoId) ?? filteredAuto[0];
+  const autoPr  = autoOpt.price;
+
+  // Заполнение — из fillItems
+  const curFillItem = fillItems.find(i => i.id === fillType);
+  const fillPr  = getFillPrice(fillType) * totalArea;
+
+  // Доптовары — из extraItems
+  const extrasPr = [...extras].reduce((s, id) => s + (extraItems.find(o => o.id === id)?.price ?? 0), 0);
+
   const instAutoPr = installAuto  ? instAuto : 0;
   const instFillPr = installFill  ? instFillM2 * gateArea : 0;
   const instGatePr = installGate  ? instGate : 0;
@@ -648,23 +685,31 @@ export default function Index() {
     setExtras(prev => { const n = new Set(prev); if (n.has(id)) { n.delete(id); } else { n.add(id); } return n; });
   }, []);
 
-  const filteredAuto = AUTOMATION_OPTIONS.filter(o =>
-    o.type === 'any' || o.type === gateType || (gateType === 'swing_wicket' && o.type === 'swing')
-  );
+  const curFillLabel = curFillItem?.label ?? fillType;
+
+  // Имена монтажей из installItems
+  const instAutoLabel   = installItemMap['inst_auto']?.label   ?? 'Монтаж автоматики';
+  const instFillLabel   = installItemMap['inst_fill']?.label   ?? 'Установка заполнения';
+  const instGateLabel   = installItemMap['inst_gate']?.label   ?? 'Установка ворот';
+  const instFrameLabel  = installItemMap['inst_frame']?.label  ?? 'Установка рамы';
+  const instWicketLabel = installItemMap['inst_wicket']?.label ?? 'Монтаж калитки';
+
+  // Имена типов ворот из gateItems
+  const gateTypeLabel = gateItems.find(i => i.id === gateType)?.label ?? gateType;
 
   type LineItem = { label: string; value: number; show: boolean; warn?: boolean; accent?: boolean };
   const lineItems: LineItem[] = [
-    { label: `Ворота (${gateType === 'sliding' ? 'откатные' : 'распашные'})`, value: gatePrices[gateType], show: true },
-    { label: 'Надбавка нестандарт +5%', value: Math.round(gatePrices[gateType] * 0.05), show: isNonStd, warn: true },
-    { label: 'Калитка', value: wicketPr, show: hasWicket },
+    { label: `Ворота: ${gateTypeLabel}`, value: curGatePrice, show: true },
+    { label: 'Надбавка нестандарт +5%', value: Math.round(curGatePrice * 0.05), show: isNonStd, warn: true },
+    { label: `Калитка (${gateItems.find(i=>i.id==='wicket')?.label ?? 'калитка'})`, value: wicketPr, show: hasWicket },
     { label: autoOpt.label, value: autoPr, show: autoPr > 0 },
-    { label: `Заполнение: ${FILL_LABELS[fillType]}`, value: Math.round(fillPr), show: fillPr > 0 },
-    ...[...extras].map(id => { const e = EXTRA_OPTIONS.find(o => o.id === id)!; return { label: e.label, value: e.price, show: true }; }),
-    { label: 'Монтаж автоматики', value: instAutoPr, show: installAuto },
-    { label: 'Установка заполнения', value: Math.round(instFillPr), show: installFill },
-    { label: 'Установка ворот', value: instGatePr, show: installGate },
-    { label: 'Установка рамы', value: instFrmPr, show: installFrame },
-    { label: 'Монтаж калитки', value: instWkPr, show: installWicket && hasWicket },
+    { label: `Заполнение: ${curFillLabel}`, value: Math.round(fillPr), show: fillPr > 0 },
+    ...[...extras].map(id => { const e = extraItems.find(o => o.id === id); return { label: e?.label ?? id, value: e?.price ?? 0, show: true }; }),
+    { label: instAutoLabel,   value: instAutoPr,            show: installAuto },
+    { label: instFillLabel,   value: Math.round(instFillPr), show: installFill },
+    { label: instGateLabel,   value: instGatePr,            show: installGate },
+    { label: instFrameLabel,  value: instFrmPr,             show: installFrame },
+    { label: instWicketLabel, value: instWkPr,              show: installWicket && hasWicket },
     { label: `Наценка ${markup}%`, value: markupAmt, show: markupAmt > 0, accent: true },
   ].filter(r => r.show);
 
@@ -675,10 +720,10 @@ export default function Index() {
     const newKp: KpData = {
       rnk: getRnk(), gateType, gateW, gateH, fillType, hasWicket,
       wicketW, wicketH, autoId, autoLabel: autoOpt.label,
-      extras: [...extras].map(id => EXTRA_OPTIONS.find(o => o.id === id)?.label ?? ''),
+      extras: [...extras].map(id => extraItems.find(o => o.id === id)?.label ?? ''),
       installAuto, installFill, installGate, installFrame, installWicket,
       isNonStd, lineItems: kpLineItems, subtotal, markup, markupAmt, total,
-      gateArea, wicketArea,
+      gateArea, wicketArea, fillLabel: curFillLabel,
       savedAt: new Date().toLocaleString('ru-RU'),
     };
     setKpData(newKp);
@@ -700,7 +745,7 @@ export default function Index() {
     setAutoId(kp.autoId);
     setFillType(kp.fillType);
     setExtras(new Set(
-      kp.extras.map(label => EXTRA_OPTIONS.find(o => o.label === label)?.id ?? '').filter(Boolean)
+      kp.extras.map(label => extraItems.find(o => o.label === label)?.id ?? '').filter(Boolean)
     ));
     setInstallAuto(kp.installAuto);
     setInstallFill(kp.installFill);
@@ -808,20 +853,23 @@ export default function Index() {
               <div className="glass-card p-5">
                 <SectionTitle icon="DoorOpen" title="2. Тип открывания" />
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {(Object.entries(gatePrices) as [GateType, number][]).map(([t, p]) => (
-                    <button key={t} onClick={() => setGateType(t)}
-                      className="p-3 rounded-xl text-left transition-all"
-                      style={{ border: `1px solid ${gateType === t ? 'rgba(10,132,255,0.55)' : 'rgba(255,255,255,0.07)'}`, background: gateType === t ? 'rgba(10,132,255,0.09)' : 'transparent' }}>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <Icon name={t === 'sliding' ? 'MoveHorizontal' : 'GitFork'} size={13}
-                          style={{ color: gateType === t ? 'var(--blue)' : 'var(--steel)' }} />
-                        <span className="text-xs font-semibold" style={{ color: gateType === t ? 'var(--blue)' : '#9CA3AF' }}>
-                          {t === 'sliding' ? 'Откатные' : t === 'swing' ? 'Распашные' : 'Распашные + кал.'}
-                        </span>
-                      </div>
-                      <div className="font-mono text-sm font-bold" style={{ color: gateType === t ? 'var(--green)' : '#374151' }}>{fmt(p)}</div>
-                    </button>
-                  ))}
+                  {(['sliding','swing','swing_wicket'] as GateType[]).map(t => {
+                    const item = gateItems.find(i => i.id === t);
+                    const p = gateTypePrices[t];
+                    const label = item?.label ?? t;
+                    return (
+                      <button key={t} onClick={() => setGateType(t)}
+                        className="p-3 rounded-xl text-left transition-all"
+                        style={{ border: `1px solid ${gateType === t ? 'rgba(10,132,255,0.55)' : 'rgba(255,255,255,0.07)'}`, background: gateType === t ? 'rgba(10,132,255,0.09)' : 'transparent' }}>
+                        <div className="flex items-center gap-2 mb-1.5">
+                          <Icon name={t === 'sliding' ? 'MoveHorizontal' : 'GitFork'} size={13}
+                            style={{ color: gateType === t ? 'var(--blue)' : 'var(--steel)' }} />
+                          <span className="text-xs font-semibold" style={{ color: gateType === t ? 'var(--blue)' : '#9CA3AF' }}>{label}</span>
+                        </div>
+                        <div className="font-mono text-sm font-bold" style={{ color: gateType === t ? 'var(--green)' : '#374151' }}>{fmt(p)}</div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -865,11 +913,11 @@ export default function Index() {
                     </option>
                   ))}
                 </select>
-                {autoId !== 'none' && (
+                {autoId !== 'none' && extraItems.length > 0 && (
                   <div className="mt-4 animate-fade-in">
                     <div className="text-xs mb-2 font-medium" style={{ color: 'var(--steel)' }}>Дополнительные опции:</div>
                     <div className="space-y-0.5">
-                      {EXTRA_OPTIONS.map(o => (
+                      {extraItems.map(o => (
                         <CheckRow key={o.id} checked={extras.has(o.id)} onChange={() => toggleExtra(o.id)} label={o.label} price={o.price} />
                       ))}
                     </div>
@@ -881,18 +929,18 @@ export default function Index() {
               <div className="glass-card p-5">
                 <SectionTitle icon="Grid3x3" title="5. Заполнение" sub="Цена × площадь полотна" />
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
-                  {(Object.keys(fillPrices) as FillType[]).map(ft => (
-                    <button key={ft} onClick={() => setFillType(ft)} className="p-2.5 rounded-lg text-left transition-all"
-                      style={{ border: `1px solid ${fillType === ft ? 'rgba(10,132,255,0.5)' : 'rgba(255,255,255,0.06)'}`, background: fillType === ft ? 'rgba(10,132,255,0.08)' : 'transparent' }}>
-                      <div className="text-xs font-medium" style={{ color: fillType === ft ? 'var(--blue)' : '#9CA3AF' }}>{FILL_LABELS[ft]}</div>
-                      <div className="text-xs font-mono mt-0.5" style={{ color: 'var(--steel)' }}>{fillPrices[ft].toLocaleString('ru-RU')} ₽/м²</div>
+                  {fillItems.map(item => (
+                    <button key={item.id} onClick={() => setFillType(item.id)} className="p-2.5 rounded-lg text-left transition-all"
+                      style={{ border: `1px solid ${fillType === item.id ? 'rgba(10,132,255,0.5)' : 'rgba(255,255,255,0.06)'}`, background: fillType === item.id ? 'rgba(10,132,255,0.08)' : 'transparent' }}>
+                      <div className="text-xs font-medium" style={{ color: fillType === item.id ? 'var(--blue)' : '#9CA3AF' }}>{item.label}</div>
+                      <div className="text-xs font-mono mt-0.5" style={{ color: 'var(--steel)' }}>{item.price.toLocaleString('ru-RU')} ₽/м²</div>
                     </button>
                   ))}
                 </div>
                 <div className="flex justify-between items-center px-3 py-2 rounded-lg"
                   style={{ background: 'var(--surface-3)', border: '1px solid var(--border-subtle)' }}>
                   <span className="text-xs" style={{ color: 'var(--steel)' }}>
-                    {fillPrices[fillType].toLocaleString('ru-RU')} ₽/м² × {totalArea.toFixed(2)} м²
+                    {getFillPrice(fillType).toLocaleString('ru-RU')} ₽/м² × {totalArea.toFixed(2)} м²
                   </span>
                   <span className="font-mono text-sm price-tag">{fmt(fillPr)}</span>
                 </div>
@@ -902,11 +950,11 @@ export default function Index() {
               <div className="glass-card p-5">
                 <SectionTitle icon="Wrench" title="6. Монтажные работы" />
                 <div className="space-y-0.5">
-                  <CheckRow checked={installAuto}  onChange={setInstallAuto}  label="Монтаж автоматики" price={instAuto} />
-                  <CheckRow checked={installFill}  onChange={setInstallFill}  label={`Установка заполнения (${instFillM2} ₽/м² × ${gateArea.toFixed(1)} м²)`} price={Math.round(instFillM2 * gateArea)} />
-                  <CheckRow checked={installGate}  onChange={setInstallGate}  label="Установка ворот" price={instGate} />
-                  <CheckRow checked={installFrame} onChange={setInstallFrame} label="Установка опорной рамы" price={instFrame} />
-                  {hasWicket && <CheckRow checked={installWicket} onChange={setInstallWicket} label="Монтаж калитки" price={instWicket} />}
+                  <CheckRow checked={installAuto}  onChange={setInstallAuto}  label={instAutoLabel}  price={instAuto} />
+                  <CheckRow checked={installFill}  onChange={setInstallFill}  label={`${instFillLabel} (${instFillM2} ₽/м² × ${gateArea.toFixed(1)} м²)`} price={Math.round(instFillM2 * gateArea)} />
+                  <CheckRow checked={installGate}  onChange={setInstallGate}  label={instGateLabel}  price={instGate} />
+                  <CheckRow checked={installFrame} onChange={setInstallFrame} label={instFrameLabel} price={instFrame} />
+                  {hasWicket && <CheckRow checked={installWicket} onChange={setInstallWicket} label={instWicketLabel} price={instWicket} />}
                 </div>
               </div>
 
@@ -1062,7 +1110,7 @@ export default function Index() {
                         {[
                           { icon: 'DoorOpen', val: kp.gateType === 'sliding' ? 'Откатные' : kp.gateType === 'swing' ? 'Распашные' : 'Распашные+кал.' },
                           { icon: 'Ruler', val: `${(kp.gateW/1000).toFixed(1)}×${(kp.gateH/1000).toFixed(1)} м` },
-                          { icon: 'Grid3x3', val: FILL_LABELS[kp.fillType] },
+                          { icon: 'Grid3x3', val: kp.fillLabel ?? kp.fillType },
                           ...(kp.autoLabel !== 'Без автоматики' ? [{ icon: 'Cpu', val: kp.autoLabel.split('—')[0].trim() }] : []),
                         ].map((tag, j) => (
                           <span key={j} className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-md"

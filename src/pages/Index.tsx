@@ -520,6 +520,110 @@ function AuthModal({ onClose, onLogin }: { onClose: () => void; onLogin: (name: 
   );
 }
 
+// ─── AutoDropdown ─────────────────────────────────────────────────────────────
+function AutoDropdown({ autoId, setAutoId, autoItems, extraItems, extras, toggleExtra }: {
+  autoId: string;
+  setAutoId: (id: string) => void;
+  autoItems: EditItem[];
+  extraItems: EditItem[];
+  extras: Set<string>;
+  toggleExtra: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const allOpts = [
+    { id: 'none', label: 'Без автоматики', price: 0 },
+    ...autoItems.map(i => ({ id: i.id, label: i.label, price: i.price })),
+  ];
+  const selected = allOpts.find(o => o.id === autoId) ?? allOpts[0];
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div className="glass-card p-5">
+      <SectionTitle icon="Cpu" title="4. Тип автоматики" />
+      <div ref={ref} className="relative">
+        {/* Trigger */}
+        <button
+          onClick={() => setOpen(v => !v)}
+          className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-sm transition-all"
+          style={{
+            background: 'var(--surface-3)',
+            border: `1px solid ${open ? 'var(--blue)' : 'var(--border-subtle)'}`,
+            color: 'white',
+            boxShadow: open ? '0 0 0 3px rgba(10,132,255,0.12)' : 'none',
+          }}
+        >
+          <span className="flex-1 text-left truncate pr-2">{selected.label}</span>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {selected.price > 0 && (
+              <span className="font-mono text-xs" style={{ color: 'var(--green)' }}>{fmt(selected.price)}</span>
+            )}
+            <Icon name={open ? 'ChevronUp' : 'ChevronDown'} size={14} style={{ color: 'var(--steel)' }} />
+          </div>
+        </button>
+
+        {/* Dropdown list */}
+        {open && (
+          <div
+            className="absolute left-0 right-0 z-40 mt-1 rounded-xl overflow-hidden animate-scale-in"
+            style={{
+              background: 'var(--surface-2)',
+              border: '1px solid var(--border-subtle)',
+              boxShadow: '0 16px 48px rgba(0,0,0,0.5)',
+              maxHeight: 340,
+              overflowY: 'auto',
+            }}
+          >
+            {allOpts.map((o, i) => (
+              <button
+                key={o.id}
+                onClick={() => { setAutoId(o.id); setOpen(false); }}
+                className="w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors"
+                style={{
+                  background: autoId === o.id ? 'rgba(10,132,255,0.12)' : 'transparent',
+                  borderBottom: i < allOpts.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+                }}
+                onMouseEnter={e => { if (autoId !== o.id) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                onMouseLeave={e => { if (autoId !== o.id) e.currentTarget.style.background = 'transparent'; }}
+              >
+                <span className="text-sm pr-3 text-left" style={{ color: autoId === o.id ? 'white' : '#9CA3AF' }}>
+                  {o.label}
+                </span>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  {o.price > 0 && (
+                    <span className="font-mono text-xs" style={{ color: autoId === o.id ? 'var(--green)' : '#4B5563' }}>
+                      {fmt(o.price)}
+                    </span>
+                  )}
+                  {autoId === o.id && <Icon name="Check" size={12} style={{ color: 'var(--blue)' }} />}
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {autoId !== 'none' && extraItems.length > 0 && (
+        <div className="mt-4 pt-4 animate-fade-in" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+          <div className="text-xs mb-2 font-medium" style={{ color: 'var(--steel)' }}>Дополнительные опции:</div>
+          <div className="space-y-0.5">
+            {extraItems.map(o => (
+              <CheckRow key={o.id} checked={extras.has(o.id)} onChange={() => toggleExtra(o.id)} label={o.label} price={o.price} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 export default function Index() {
   // Form state
@@ -901,62 +1005,14 @@ export default function Index() {
               </div>
 
               {/* 4. Автоматика */}
-              <div className="glass-card p-5">
-                <SectionTitle icon="Cpu" title="4. Тип автоматики" />
-
-                {/* Кнопка «Без автоматики» отдельно */}
-                <button
-                  onClick={() => setAutoId('none')}
-                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg mb-2 text-sm transition-all"
-                  style={{
-                    border: `1px solid ${autoId === 'none' ? 'rgba(10,132,255,0.45)' : 'rgba(255,255,255,0.06)'}`,
-                    background: autoId === 'none' ? 'rgba(10,132,255,0.08)' : 'transparent',
-                    color: autoId === 'none' ? 'var(--blue)' : '#6B7280',
-                  }}
-                >
-                  <span className="flex items-center gap-2">
-                    <Icon name="Ban" size={13} />
-                    Без автоматики
-                  </span>
-                  {autoId === 'none' && <Icon name="Check" size={13} style={{ color: 'var(--blue)' }} />}
-                </button>
-
-                {/* Все позиции из настроек */}
-                <div className="space-y-1">
-                  {autoItems.map(o => (
-                    <button
-                      key={o.id}
-                      onClick={() => setAutoId(o.id)}
-                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left transition-all"
-                      style={{
-                        border: `1px solid ${autoId === o.id ? 'rgba(10,132,255,0.45)' : 'rgba(255,255,255,0.05)'}`,
-                        background: autoId === o.id ? 'rgba(10,132,255,0.08)' : 'transparent',
-                      }}
-                    >
-                      <span className="text-sm pr-3" style={{ color: autoId === o.id ? 'white' : '#9CA3AF' }}>
-                        {o.label}
-                      </span>
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="font-mono text-xs" style={{ color: autoId === o.id ? 'var(--green)' : '#4B5563' }}>
-                          {fmt(o.price)}
-                        </span>
-                        {autoId === o.id && <Icon name="Check" size={12} style={{ color: 'var(--blue)' }} />}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-
-                {autoId !== 'none' && extraItems.length > 0 && (
-                  <div className="mt-4 pt-4 animate-fade-in" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-                    <div className="text-xs mb-2 font-medium" style={{ color: 'var(--steel)' }}>Дополнительные опции:</div>
-                    <div className="space-y-0.5">
-                      {extraItems.map(o => (
-                        <CheckRow key={o.id} checked={extras.has(o.id)} onChange={() => toggleExtra(o.id)} label={o.label} price={o.price} />
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <AutoDropdown
+                autoId={autoId}
+                setAutoId={setAutoId}
+                autoItems={autoItems}
+                extraItems={extraItems}
+                extras={extras}
+                toggleExtra={toggleExtra}
+              />
 
               {/* 5. Заполнение */}
               <div className="glass-card p-5">

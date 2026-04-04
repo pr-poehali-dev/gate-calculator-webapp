@@ -129,6 +129,7 @@ export default function Index() {
   const [installWicket, setInstallWicket] = useState(false);
   const [isOpen, setIsOpen]       = useState(false);
   const [activeTab, setActiveTab] = useState<'calc' | 'history' | 'admin'>('calc');
+  const [markup, setMarkup]       = useState(0);
 
   const isNonStd = gateW > 5000 || gateH > 2500;
 
@@ -147,8 +148,10 @@ export default function Index() {
   const instGatePr = installGate   ? 15000 : 0;
   const instFrmPr  = installFrame  ? 25000 : 0;
   const instWkPr   = (hasWicket && installWicket) ? 5000 : 0;
-  const total = baseGate + wicketPr + autoPr + fillPr + extrasPr
+  const subtotal = baseGate + wicketPr + autoPr + fillPr + extrasPr
     + instAutoPr + instFillPr + instGatePr + instFrmPr + instWkPr;
+  const markupAmt = markup > 0 ? Math.round(subtotal * markup / 100) : 0;
+  const total = subtotal + markupAmt;
 
   const toggleExtra = useCallback((id: string) => {
     setExtras(prev => { const n = new Set(prev); if (n.has(id)) { n.delete(id); } else { n.add(id); } return n; });
@@ -158,7 +161,7 @@ export default function Index() {
     o.type === 'any' || o.type === gateType || (gateType === 'swing_wicket' && o.type === 'swing')
   );
 
-  type LineItem = { label: string; value: number; show: boolean; warn?: boolean };
+  type LineItem = { label: string; value: number; show: boolean; warn?: boolean; accent?: boolean };
   const lineItems: LineItem[] = [
     { label: `Ворота (${gateType === 'sliding' ? 'откатные' : 'распашные'})`, value: GATE_PRICES[gateType], show: true },
     { label: 'Надбавка нестандарт +5%', value: Math.round(GATE_PRICES[gateType] * 0.05), show: isNonStd, warn: true },
@@ -174,6 +177,7 @@ export default function Index() {
     { label: 'Установка ворот', value: instGatePr, show: installGate },
     { label: 'Установка рамы', value: instFrmPr, show: installFrame },
     { label: 'Монтаж калитки', value: instWkPr, show: installWicket && hasWicket },
+    { label: `Наценка ${markup}%`, value: markupAmt, show: markupAmt > 0, accent: true },
   ].filter(r => r.show);
 
   return (
@@ -398,6 +402,40 @@ export default function Index() {
                   )}
                 </div>
               </div>
+
+              {/* 7. Наценка */}
+              <div className="glass-card p-5">
+                <SectionTitle icon="Percent" title="7. Наценка" sub="Добавляется к итоговой сумме" />
+                <div className="flex items-center gap-3">
+                  <div className="relative flex-1">
+                    <input
+                      type="number"
+                      className="field-input pr-8"
+                      value={markup === 0 ? '' : markup}
+                      onChange={e => setMarkup(Math.max(0, Math.min(200, Number(e.target.value) || 0)))}
+                      placeholder="0"
+                      min={0}
+                      max={200}
+                      step={1}
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold pointer-events-none"
+                      style={{ color: 'var(--steel)' }}>%</span>
+                  </div>
+                  {markup > 0 && (
+                    <div className="flex-shrink-0 px-3 py-2 rounded-lg text-sm font-mono font-semibold animate-fade-in"
+                      style={{ background: 'rgba(252,211,77,0.1)', border: '1px solid rgba(252,211,77,0.25)', color: '#FCD34D' }}>
+                      +{fmt(markupAmt)}
+                    </div>
+                  )}
+                </div>
+                {markup > 0 && (
+                  <div className="flex justify-between items-center mt-2 px-3 py-2 rounded-lg text-xs animate-fade-in"
+                    style={{ background: 'var(--surface-3)', border: '1px solid var(--border-subtle)' }}>
+                    <span style={{ color: 'var(--steel)' }}>Сумма без наценки</span>
+                    <span className="font-mono" style={{ color: 'var(--steel)' }}>{fmt(Math.round(subtotal))}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Sketch + Total */}
@@ -431,10 +469,10 @@ export default function Index() {
                 <div className="space-y-2 mb-3">
                   {lineItems.map((row, i) => (
                     <div key={i} className="flex items-start gap-2 text-xs">
-                      <span className="flex-1 leading-relaxed" style={{ color: row.warn ? '#F87171' : 'var(--steel)' }}>
+                      <span className="flex-1 leading-relaxed" style={{ color: row.warn ? '#F87171' : row.accent ? '#FCD34D' : 'var(--steel)' }}>
                         {row.label}
                       </span>
-                      <span className="font-mono flex-shrink-0" style={{ color: row.warn ? '#F87171' : '#6B7280' }}>
+                      <span className="font-mono flex-shrink-0" style={{ color: row.warn ? '#F87171' : row.accent ? '#FCD34D' : '#6B7280' }}>
                         {fmt(row.value)}
                       </span>
                     </div>

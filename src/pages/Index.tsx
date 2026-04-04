@@ -148,13 +148,14 @@ interface KpData {
   gateType: GateType; gateW: number; gateH: number;
   fillType: FillType; hasWicket: boolean;
   wicketW: number; wicketH: number;
-  autoLabel: string; extras: string[];
+  autoId: string; autoLabel: string; extras: string[];
   installAuto: boolean; installFill: boolean; installGate: boolean;
   installFrame: boolean; installWicket: boolean;
   isNonStd: boolean;
   lineItems: { label: string; value: number }[];
   subtotal: number; markup: number; markupAmt: number; total: number;
   gateArea: number; wicketArea: number;
+  savedAt: string;
 }
 
 function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
@@ -446,6 +447,9 @@ export default function Index() {
   const [showKp, setShowKp]   = useState(false);
   const [kpData, setKpData]   = useState<KpData | null>(null);
 
+  // History
+  const [history, setHistory] = useState<KpData[]>([]);
+
   // Editable prices
   const [gatePrices, setGatePrices] = useState({ ...DEFAULT_GATE_PRICES });
   const [fillPrices, setFillPrices] = useState({ ...DEFAULT_FILL_PRICES });
@@ -504,20 +508,43 @@ export default function Index() {
   const kpLineItems = lineItems.filter(r => !r.accent);
 
   const openKp = () => {
-    setKpData({
+    const newKp: KpData = {
       rnk: getRnk(), gateType, gateW, gateH, fillType, hasWicket,
-      wicketW, wicketH, autoLabel: autoOpt.label,
+      wicketW, wicketH, autoId, autoLabel: autoOpt.label,
       extras: [...extras].map(id => EXTRA_OPTIONS.find(o => o.id === id)?.label ?? ''),
       installAuto, installFill, installGate, installFrame, installWicket,
       isNonStd, lineItems: kpLineItems, subtotal, markup, markupAmt, total,
       gateArea, wicketArea,
-    });
+      savedAt: new Date().toLocaleString('ru-RU'),
+    };
+    setKpData(newKp);
+    setHistory(prev => [newKp, ...prev]);
     setShowKp(true);
   };
 
   // Сохранить = открыть КП + сразу печать
-  const savePdf = () => {
-    openKp();
+  const savePdf = () => { openKp(); };
+
+  // Загрузить расчёт из истории
+  const loadCalc = (kp: KpData) => {
+    setGateW(kp.gateW);
+    setGateH(kp.gateH);
+    setGateType(kp.gateType);
+    setHasWicket(kp.hasWicket);
+    setWicketW(kp.wicketW);
+    setWicketH(kp.wicketH);
+    setAutoId(kp.autoId);
+    setFillType(kp.fillType);
+    setExtras(new Set(
+      kp.extras.map(label => EXTRA_OPTIONS.find(o => o.label === label)?.id ?? '').filter(Boolean)
+    ));
+    setInstallAuto(kp.installAuto);
+    setInstallFill(kp.installFill);
+    setInstallGate(kp.installGate);
+    setInstallFrame(kp.installFrame);
+    setInstallWicket(kp.installWicket);
+    setMarkup(kp.markup);
+    setActiveTab('calc');
   };
 
   return (
@@ -814,29 +841,108 @@ export default function Index() {
 
       {/* ── HISTORY ── */}
       {activeTab === 'history' && (
-        <div className="max-w-2xl mx-auto px-4 sm:px-6 py-16 text-center animate-fade-in">
-          <div className="w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-5"
-            style={{ background: 'var(--surface-3)', border: '1px solid var(--border-subtle)' }}>
-            <Icon name="History" size={28} style={{ color: 'var(--steel)' }} />
-          </div>
-          <h2 className="text-xl font-bold text-white mb-2">История расчётов</h2>
-          {user ? (
-            <p className="text-sm mb-6" style={{ color: 'var(--steel)' }}>
-              Добро пожаловать, <strong className="text-white">{user.name}</strong>!<br />
-              Сохранённые расчёты появятся здесь после нажатия «Создать КП».
-            </p>
-          ) : (
-            <>
-              <p className="text-sm mb-6" style={{ color: 'var(--steel)' }}>
-                Войдите в аккаунт, чтобы сохранять расчёты с номером РНК и скачивать КП в PDF.
-              </p>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: 'rgba(10,132,255,0.15)', border: '1px solid rgba(10,132,255,0.3)' }}>
+                <Icon name="History" size={15} style={{ color: 'var(--blue)' }} />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">История расчётов</h2>
+                <p className="text-xs" style={{ color: 'var(--steel)' }}>{history.length} сохранённых КП</p>
+              </div>
+            </div>
+            {!user && (
               <button onClick={() => setShowAuth(true)}
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold text-white"
-                style={{ background: 'var(--blue)' }}>
-                <Icon name="LogIn" size={14} />
-                Войти в аккаунт
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                style={{ background: 'var(--blue)', color: 'white' }}>
+                <Icon name="LogIn" size={13} />
+                Войти
               </button>
-            </>
+            )}
+          </div>
+
+          {history.length === 0 ? (
+            <div className="glass-card p-12 text-center">
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                style={{ background: 'var(--surface-3)', border: '1px solid var(--border-subtle)' }}>
+                <Icon name="FileText" size={24} style={{ color: 'var(--steel)' }} />
+              </div>
+              <p className="text-sm font-medium text-white mb-1">Расчётов пока нет</p>
+              <p className="text-xs" style={{ color: 'var(--steel)' }}>
+                Нажмите «Создать КП» на вкладке калькулятора — расчёт автоматически появится здесь
+              </p>
+              <button onClick={() => setActiveTab('calc')}
+                className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all hover:brightness-110"
+                style={{ background: 'var(--blue)' }}>
+                <Icon name="Calculator" size={13} />
+                Перейти к калькулятору
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {history.map((kp, i) => (
+                <div key={kp.rnk} className="glass-card p-4 animate-fade-in"
+                  style={{ animationDelay: `${i * 0.04}s` }}>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <span className="font-mono text-xs font-bold px-2 py-0.5 rounded"
+                          style={{ background: 'rgba(10,132,255,0.15)', color: 'var(--blue)', border: '1px solid rgba(10,132,255,0.25)' }}>
+                          РНК {kp.rnk}
+                        </span>
+                        <span className="text-xs" style={{ color: 'var(--steel)' }}>{kp.savedAt}</span>
+                      </div>
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {[
+                          { icon: 'DoorOpen', val: kp.gateType === 'sliding' ? 'Откатные' : kp.gateType === 'swing' ? 'Распашные' : 'Распашные+кал.' },
+                          { icon: 'Ruler', val: `${(kp.gateW/1000).toFixed(1)}×${(kp.gateH/1000).toFixed(1)} м` },
+                          { icon: 'Grid3x3', val: FILL_LABELS[kp.fillType] },
+                          ...(kp.autoLabel !== 'Без автоматики' ? [{ icon: 'Cpu', val: kp.autoLabel.split('—')[0].trim() }] : []),
+                        ].map((tag, j) => (
+                          <span key={j} className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-md"
+                            style={{ background: 'var(--surface-3)', color: 'var(--steel)', border: '1px solid var(--border-subtle)' }}>
+                            <Icon name={tag.icon} size={10} />
+                            {tag.val}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="text-xl font-bold font-mono" style={{ color: 'var(--green)' }}>
+                        {fmt(kp.total)}
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => loadCalc(kp)}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all hover:brightness-110"
+                        style={{ background: 'var(--blue)', color: 'white' }}>
+                        <Icon name="RotateCcw" size={12} />
+                        Загрузить
+                      </button>
+                      <button
+                        onClick={() => { setKpData(kp); setShowKp(true); }}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all"
+                        style={{ border: '1px solid var(--border-subtle)', color: 'var(--steel)', background: 'transparent' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                        <Icon name="FileText" size={12} />
+                        КП / PDF
+                      </button>
+                      <button
+                        onClick={() => setHistory(prev => prev.filter(h => h.rnk !== kp.rnk))}
+                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all"
+                        style={{ border: '1px solid rgba(239,68,68,0.2)', color: '#F87171', background: 'transparent' }}
+                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.06)')}
+                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
+                        <Icon name="Trash2" size={12} />
+                        Удалить
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       )}

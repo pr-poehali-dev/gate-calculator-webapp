@@ -654,15 +654,12 @@ export default function Index() {
   const baseGate   = curGatePrice * (isNonStd ? 1.05 : 1);
   const wicketPr   = hasWicket ? wicketPrice : 0;
 
-  // Автоматика — из autoItems (+ статичный none)
+  // Автоматика — все позиции из autoItems + «Без автоматики»
   const allAutoOpts = [
-    { id: 'none', label: 'Без автоматики', price: 0, type: 'any' },
-    ...autoItems.map(i => ({ id: i.id, label: i.label, price: i.price, type: i.id.includes('_s') ? 'sliding' : 'swing' })),
+    { id: 'none', label: 'Без автоматики', price: 0 },
+    ...autoItems.map(i => ({ id: i.id, label: i.label, price: i.price })),
   ];
-  const filteredAuto = allAutoOpts.filter(o =>
-    o.type === 'any' || o.type === gateType || (gateType === 'swing_wicket' && o.type === 'swing')
-  );
-  const autoOpt = filteredAuto.find(o => o.id === autoId) ?? filteredAuto[0];
+  const autoOpt = allAutoOpts.find(o => o.id === autoId) ?? allAutoOpts[0];
   const autoPr  = autoOpt.price;
 
   // Заполнение — из fillItems
@@ -906,15 +903,51 @@ export default function Index() {
               {/* 4. Автоматика */}
               <div className="glass-card p-5">
                 <SectionTitle icon="Cpu" title="4. Тип автоматики" />
-                <select className="field-input" value={autoId} onChange={e => setAutoId(e.target.value)}>
-                  {filteredAuto.map(o => (
-                    <option key={o.id} value={o.id} style={{ background: 'var(--surface-3)' }}>
-                      {o.label}{o.price > 0 ? ` — ${fmt(o.price)}` : ''}
-                    </option>
+
+                {/* Кнопка «Без автоматики» отдельно */}
+                <button
+                  onClick={() => setAutoId('none')}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg mb-2 text-sm transition-all"
+                  style={{
+                    border: `1px solid ${autoId === 'none' ? 'rgba(10,132,255,0.45)' : 'rgba(255,255,255,0.06)'}`,
+                    background: autoId === 'none' ? 'rgba(10,132,255,0.08)' : 'transparent',
+                    color: autoId === 'none' ? 'var(--blue)' : '#6B7280',
+                  }}
+                >
+                  <span className="flex items-center gap-2">
+                    <Icon name="Ban" size={13} />
+                    Без автоматики
+                  </span>
+                  {autoId === 'none' && <Icon name="Check" size={13} style={{ color: 'var(--blue)' }} />}
+                </button>
+
+                {/* Все позиции из настроек */}
+                <div className="space-y-1">
+                  {autoItems.map(o => (
+                    <button
+                      key={o.id}
+                      onClick={() => setAutoId(o.id)}
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-left transition-all"
+                      style={{
+                        border: `1px solid ${autoId === o.id ? 'rgba(10,132,255,0.45)' : 'rgba(255,255,255,0.05)'}`,
+                        background: autoId === o.id ? 'rgba(10,132,255,0.08)' : 'transparent',
+                      }}
+                    >
+                      <span className="text-sm pr-3" style={{ color: autoId === o.id ? 'white' : '#9CA3AF' }}>
+                        {o.label}
+                      </span>
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <span className="font-mono text-xs" style={{ color: autoId === o.id ? 'var(--green)' : '#4B5563' }}>
+                          {fmt(o.price)}
+                        </span>
+                        {autoId === o.id && <Icon name="Check" size={12} style={{ color: 'var(--blue)' }} />}
+                      </div>
+                    </button>
                   ))}
-                </select>
+                </div>
+
                 {autoId !== 'none' && extraItems.length > 0 && (
-                  <div className="mt-4 animate-fade-in">
+                  <div className="mt-4 pt-4 animate-fade-in" style={{ borderTop: '1px solid var(--border-subtle)' }}>
                     <div className="text-xs mb-2 font-medium" style={{ color: 'var(--steel)' }}>Дополнительные опции:</div>
                     <div className="space-y-0.5">
                       {extraItems.map(o => (

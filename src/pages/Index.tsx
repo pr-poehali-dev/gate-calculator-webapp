@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Icon from '@/components/ui/icon';
-import GateSketch, { GateType, FillType } from '@/components/GateSketch';
+import GateSketch, { GateType, FillType, FillDir } from '@/components/GateSketch';
 
 // ─── Default prices (editable) ───────────────────────────────────────────────
 const DEFAULT_GATE_PRICES: Record<GateType, number> = { sliding: 35000, swing: 30000, swing_wicket: 40000 };
@@ -635,6 +635,7 @@ export default function Index() {
   const [wicketH, setWicketH]     = useState(2000);
   const [autoId, setAutoId]       = useState('none');
   const [fillType, setFillType]   = useState<FillType>('proflist');
+  const [fillDir, setFillDir]     = useState<FillDir>('horizontal');
   const [extras, setExtras]       = useState<Set<string>>(new Set());
   const [installAuto,   setInstallAuto]   = useState(false);
   const [installFill,   setInstallFill]   = useState(false);
@@ -1016,7 +1017,43 @@ export default function Index() {
 
               {/* 5. Заполнение */}
               <div className="glass-card p-5">
-                <SectionTitle icon="Grid3x3" title="5. Заполнение" sub="Цена × площадь полотна" />
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  <SectionTitle icon="Grid3x3" title="5. Заполнение" sub="Цена × площадь полотна" />
+                  {/* Переключатель направления */}
+                  <div className="flex-shrink-0 flex items-center rounded-lg overflow-hidden"
+                    style={{ border: '1px solid var(--border-subtle)', background: 'var(--surface-3)' }}>
+                    {(['horizontal', 'vertical'] as FillDir[]).map(dir => (
+                      <button
+                        key={dir}
+                        onClick={() => setFillDir(dir)}
+                        title={dir === 'horizontal' ? 'Горизонтально' : 'Вертикально'}
+                        className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium transition-all"
+                        style={{
+                          background: fillDir === dir ? 'var(--blue)' : 'transparent',
+                          color: fillDir === dir ? 'white' : 'var(--steel)',
+                        }}
+                      >
+                        {/* Иконка направления — горизонтальные/вертикальные линии */}
+                        <svg width="16" height="16" viewBox="0 0 16 16">
+                          {dir === 'horizontal' ? (
+                            <>
+                              <line x1="2" y1="4"  x2="14" y2="4"  stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                              <line x1="2" y1="8"  x2="14" y2="8"  stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                              <line x1="2" y1="12" x2="14" y2="12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                            </>
+                          ) : (
+                            <>
+                              <line x1="4"  y1="2" x2="4"  y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                              <line x1="8"  y1="2" x2="8"  y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                              <line x1="12" y1="2" x2="12" y2="14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                            </>
+                          )}
+                        </svg>
+                        <span className="hidden sm:inline">{dir === 'horizontal' ? 'Гориз.' : 'Верт.'}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
                   {fillItems.map(item => (
                     <button key={item.id} onClick={() => setFillType(item.id)} className="p-2.5 rounded-lg text-left transition-all"
@@ -1090,7 +1127,7 @@ export default function Index() {
                   </button>
                 </div>
                 <div className="p-1">
-                  <GateSketch width={gateW} height={gateH} gateType={gateType} fillType={fillType}
+                  <GateSketch width={gateW} height={gateH} gateType={gateType} fillType={fillType} fillDir={fillDir}
                     hasWicket={hasWicket} wicketWidth={wicketW} wicketHeight={wicketH} isOpen={isOpen} />
                 </div>
               </div>

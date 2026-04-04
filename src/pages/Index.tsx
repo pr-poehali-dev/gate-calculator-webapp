@@ -92,43 +92,144 @@ function CheckRow({ checked, onChange, label, price, disabled }: {
   );
 }
 
-// ─── Price edit row ───────────────────────────────────────────────────────────
+// ─── Generic editable item (label + price) ───────────────────────────────────
+interface EditItem { id: string; label: string; price: number; suffix?: string; }
+
+function EditableRow({ item, onChange, onDelete, showDelete }: {
+  item: EditItem;
+  onChange: (updated: EditItem) => void;
+  onDelete: () => void;
+  showDelete: boolean;
+}) {
+  const [mode, setMode] = useState<'view' | 'label' | 'price'>('view');
+  const [tmpLabel, setTmpLabel] = useState(item.label);
+  const [tmpPrice, setTmpPrice] = useState(String(item.price));
+
+  const commitLabel = () => {
+    if (tmpLabel.trim()) onChange({ ...item, label: tmpLabel.trim() });
+    setMode('view');
+  };
+  const commitPrice = () => {
+    const v = parseInt(tmpPrice.replace(/\D/g, ''), 10);
+    if (!isNaN(v) && v > 0) onChange({ ...item, price: v });
+    setMode('view');
+  };
+
+  return (
+    <div className="flex items-center gap-1 py-1.5 group" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+      {/* Label cell */}
+      <div className="flex-1 min-w-0">
+        {mode === 'label' ? (
+          <input autoFocus value={tmpLabel} onChange={e => setTmpLabel(e.target.value)}
+            onBlur={commitLabel} onKeyDown={e => { if (e.key === 'Enter') commitLabel(); if (e.key === 'Escape') setMode('view'); }}
+            className="w-full text-sm rounded px-2 py-0.5 outline-none"
+            style={{ background: 'var(--surface-3)', border: '1px solid var(--blue)', color: 'white' }} />
+        ) : (
+          <span className="text-sm cursor-pointer hover:text-white transition-colors flex items-center gap-1.5"
+            style={{ color: 'var(--steel)' }}
+            onClick={() => { setTmpLabel(item.label); setMode('label'); }}>
+            {item.label}
+            <Icon name="Pencil" size={10} className="opacity-0 group-hover:opacity-40 transition-opacity flex-shrink-0" style={{ color: 'var(--blue)' }} />
+          </span>
+        )}
+      </div>
+      {/* Price cell */}
+      <div className="flex items-center gap-1 flex-shrink-0">
+        {mode === 'price' ? (
+          <div className="flex items-center gap-1">
+            <input autoFocus value={tmpPrice} onChange={e => setTmpPrice(e.target.value)}
+              onBlur={commitPrice} onKeyDown={e => { if (e.key === 'Enter') commitPrice(); if (e.key === 'Escape') setMode('view'); }}
+              className="w-24 text-right font-mono text-sm rounded px-2 py-0.5 outline-none"
+              style={{ background: 'var(--surface-3)', border: '1px solid var(--blue)', color: 'white' }} />
+            <span className="text-xs" style={{ color: 'var(--steel)' }}>{item.suffix || '₽'}</span>
+          </div>
+        ) : (
+          <span className="font-mono text-sm cursor-pointer price-tag hover:brightness-125 transition-all"
+            onClick={() => { setTmpPrice(String(item.price)); setMode('price'); }}>
+            {item.price.toLocaleString('ru-RU')} {item.suffix || '₽'}
+          </span>
+        )}
+        {showDelete && (
+          <button onClick={onDelete} className="ml-1 p-0.5 rounded opacity-0 group-hover:opacity-60 hover:opacity-100 transition-opacity"
+            style={{ color: '#F87171' }}>
+            <Icon name="X" size={12} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Секция с заголовком (редактируется) + список items + кнопка добавить
+function EditableSection({ title, items, suffix, onTitleChange, onItemChange, onItemDelete, onItemAdd }: {
+  title: string;
+  items: EditItem[];
+  suffix?: string;
+  onTitleChange: (t: string) => void;
+  onItemChange: (id: string, updated: EditItem) => void;
+  onItemDelete: (id: string) => void;
+  onItemAdd: () => void;
+}) {
+  const [editTitle, setEditTitle] = useState(false);
+  const [tmpTitle, setTmpTitle] = useState(title);
+
+  const commitTitle = () => { if (tmpTitle.trim()) onTitleChange(tmpTitle.trim()); setEditTitle(false); };
+
+  return (
+    <div className="glass-card p-5">
+      {/* Section title */}
+      <div className="flex items-center justify-between mb-3 group/head">
+        {editTitle ? (
+          <input autoFocus value={tmpTitle} onChange={e => setTmpTitle(e.target.value)}
+            onBlur={commitTitle} onKeyDown={e => { if (e.key === 'Enter') commitTitle(); if (e.key === 'Escape') setEditTitle(false); }}
+            className="text-xs font-bold rounded px-2 py-0.5 outline-none tracking-widest uppercase w-full mr-2"
+            style={{ background: 'var(--surface-3)', border: '1px solid var(--blue)', color: 'white' }} />
+        ) : (
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => { setTmpTitle(title); setEditTitle(true); }}>
+            <span className="text-xs font-bold text-white tracking-widest">{title}</span>
+            <Icon name="Pencil" size={10} className="opacity-0 group-hover/head:opacity-50 transition-opacity" style={{ color: 'var(--blue)' }} />
+          </div>
+        )}
+        <button onClick={onItemAdd}
+          className="flex items-center gap-1 px-2 py-1 rounded-md text-xs transition-all hover:brightness-110 flex-shrink-0"
+          style={{ background: 'rgba(10,132,255,0.15)', color: 'var(--blue)', border: '1px solid rgba(10,132,255,0.3)' }}>
+          <Icon name="Plus" size={11} />
+          Добавить
+        </button>
+      </div>
+      {/* Rows */}
+      {items.map(item => (
+        <EditableRow key={item.id} item={{ ...item, suffix: item.suffix ?? suffix }}
+          onChange={updated => onItemChange(item.id, updated)}
+          onDelete={() => onItemDelete(item.id)}
+          showDelete={items.length > 1} />
+      ))}
+    </div>
+  );
+}
+
+// ─── Price edit row (legacy, kept for compatibility) ─────────────────────────
 function PriceRow({ label, value, onChange, suffix }: {
   label: string; value: number; onChange: (v: number) => void; suffix?: string;
 }) {
   const [editing, setEditing] = useState(false);
   const [tmp, setTmp] = useState(String(value));
   const inp = useRef<HTMLInputElement>(null);
-
-  const commit = () => {
-    const v = parseInt(tmp.replace(/\D/g,''), 10);
-    if (!isNaN(v) && v > 0) onChange(v);
-    setEditing(false);
-  };
-
-  if (editing) {
-    return (
-      <div className="flex items-center justify-between py-2" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-        <span className="text-sm flex-1 mr-3" style={{ color: 'var(--steel)' }}>{label}</span>
-        <div className="flex items-center gap-1">
-          <input ref={inp} autoFocus type="text" value={tmp}
-            onChange={e => setTmp(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setEditing(false); }}
-            className="w-28 text-right font-mono text-sm rounded px-2 py-0.5 outline-none"
-            style={{ background: 'var(--surface-3)', border: '1px solid var(--blue)', color: 'white' }}
-          />
-          <span className="text-xs" style={{ color: 'var(--steel)' }}>{suffix || '₽'}</span>
-          <button onClick={commit} className="ml-1 p-0.5 rounded" style={{ color: 'var(--green)' }}>
-            <Icon name="Check" size={13} />
-          </button>
-          <button onClick={() => setEditing(false)} className="p-0.5 rounded" style={{ color: '#F87171' }}>
-            <Icon name="X" size={13} />
-          </button>
-        </div>
+  const commit = () => { const v = parseInt(tmp.replace(/\D/g,''), 10); if (!isNaN(v) && v > 0) onChange(v); setEditing(false); };
+  if (editing) return (
+    <div className="flex items-center justify-between py-2" style={{ borderBottom: '1px solid var(--border-subtle)' }}>
+      <span className="text-sm flex-1 mr-3" style={{ color: 'var(--steel)' }}>{label}</span>
+      <div className="flex items-center gap-1">
+        <input ref={inp} autoFocus type="text" value={tmp} onChange={e => setTmp(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setEditing(false); }}
+          className="w-28 text-right font-mono text-sm rounded px-2 py-0.5 outline-none"
+          style={{ background: 'var(--surface-3)', border: '1px solid var(--blue)', color: 'white' }} />
+        <span className="text-xs" style={{ color: 'var(--steel)' }}>{suffix || '₽'}</span>
+        <button onClick={commit} className="ml-1 p-0.5 rounded" style={{ color: 'var(--green)' }}><Icon name="Check" size={13} /></button>
+        <button onClick={() => setEditing(false)} className="p-0.5 rounded" style={{ color: '#F87171' }}><Icon name="X" size={13} /></button>
       </div>
-    );
-  }
-
+    </div>
+  );
   return (
     <div className="flex items-center justify-between py-2 group cursor-pointer"
       style={{ borderBottom: '1px solid var(--border-subtle)' }}
@@ -450,7 +551,7 @@ export default function Index() {
   // History
   const [history, setHistory] = useState<KpData[]>([]);
 
-  // Editable prices
+  // Editable prices (legacy, used in calcs)
   const [gatePrices, setGatePrices] = useState({ ...DEFAULT_GATE_PRICES });
   const [fillPrices, setFillPrices] = useState({ ...DEFAULT_FILL_PRICES });
   const [wicketPrice, setWicketPrice] = useState(DEFAULT_WICKET_PRICE);
@@ -459,6 +560,69 @@ export default function Index() {
   const [instGate, setInstGate]   = useState(DEFAULT_INST_GATE);
   const [instFrame, setInstFrame] = useState(DEFAULT_INST_FRAME);
   const [instWicket, setInstWicketP] = useState(DEFAULT_INST_WICKET);
+
+  // ── Dynamic admin sections ──────────────────────────────────────────────────
+  const [secTitles, setSecTitles] = useState({
+    gate:     'ТИПЫ ВОРОТ',
+    fill:     'ЗАПОЛНЕНИЕ',
+    install:  'МОНТАЖНЫЕ РАБОТЫ',
+    extras:   'ДОПТОВАРЫ',
+    auto:     'АВТОМАТИКА',
+  });
+
+  const [gateItems, setGateItems] = useState<EditItem[]>([
+    { id: 'sliding',      label: 'Откатные',            price: DEFAULT_GATE_PRICES.sliding },
+    { id: 'swing',        label: 'Распашные',           price: DEFAULT_GATE_PRICES.swing },
+    { id: 'swing_wicket', label: 'Распашные + калитка', price: DEFAULT_GATE_PRICES.swing_wicket },
+    { id: 'wicket',       label: 'Отдельная калитка',   price: DEFAULT_WICKET_PRICE },
+  ]);
+
+  const [fillItems, setFillItems] = useState<EditItem[]>([
+    { id: 'proflist',   label: 'Профлист',        price: DEFAULT_FILL_PRICES.proflist,   suffix: '₽/м²' },
+    { id: 'rancho',     label: 'Ранчо',           price: DEFAULT_FILL_PRICES.rancho,     suffix: '₽/м²' },
+    { id: 'jalusi',     label: 'Жалюзи',          price: DEFAULT_FILL_PRICES.jalusi,     suffix: '₽/м²' },
+    { id: 'siding',     label: 'Металлосайдинг',  price: DEFAULT_FILL_PRICES.siding,     suffix: '₽/м²' },
+    { id: 'shtaketnik', label: 'Штакетник',       price: DEFAULT_FILL_PRICES.shtaketnik, suffix: '₽/м²' },
+  ]);
+
+  const [installItems, setInstallItems] = useState<EditItem[]>([
+    { id: 'inst_auto',   label: 'Монтаж автоматики',      price: DEFAULT_INST_AUTO },
+    { id: 'inst_fill',   label: 'Установка заполнения',   price: DEFAULT_INST_FILL_M2, suffix: '₽/м²' },
+    { id: 'inst_gate',   label: 'Установка ворот',        price: DEFAULT_INST_GATE },
+    { id: 'inst_frame',  label: 'Установка опорной рамы', price: DEFAULT_INST_FRAME },
+    { id: 'inst_wicket', label: 'Монтаж калитки',         price: DEFAULT_INST_WICKET },
+  ]);
+
+  const [extraItems, setExtraItems] = useState<EditItem[]>(
+    EXTRA_OPTIONS.map(o => ({ id: o.id, label: o.label, price: o.price }))
+  );
+
+  const [autoItems, setAutoItems] = useState<EditItem[]>(
+    AUTOMATION_OPTIONS.filter(o => o.id !== 'none').map(o => ({ id: o.id, label: o.label, price: o.price }))
+  );
+
+  // helper: sync gate prices to calculator state
+  const syncGateItem = (id: string, updated: EditItem) => {
+    setGateItems(prev => prev.map(i => i.id === id ? updated : i));
+    if (id === 'sliding')      setGatePrices(p => ({ ...p, sliding: updated.price }));
+    if (id === 'swing')        setGatePrices(p => ({ ...p, swing: updated.price }));
+    if (id === 'swing_wicket') setGatePrices(p => ({ ...p, swing_wicket: updated.price }));
+    if (id === 'wicket')       setWicketPrice(updated.price);
+  };
+  const syncFillItem = (id: string, updated: EditItem) => {
+    setFillItems(prev => prev.map(i => i.id === id ? updated : i));
+    if (id in fillPrices) setFillPrices(p => ({ ...p, [id]: updated.price }));
+  };
+  const syncInstallItem = (id: string, updated: EditItem) => {
+    setInstallItems(prev => prev.map(i => i.id === id ? updated : i));
+    if (id === 'inst_auto')   setInstAuto(updated.price);
+    if (id === 'inst_fill')   setInstFillM2(updated.price);
+    if (id === 'inst_gate')   setInstGate(updated.price);
+    if (id === 'inst_frame')  setInstFrame(updated.price);
+    if (id === 'inst_wicket') setInstWicketP(updated.price);
+  };
+
+  const makeId = () => Math.random().toString(36).slice(2, 8);
 
   // Calcs
   const isNonStd   = gateW > 5000 || gateH > 2500;
@@ -956,53 +1120,75 @@ export default function Index() {
               <Icon name="Settings2" size={15} style={{ color: 'var(--blue)' }} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Настройки цен</h2>
-              <p className="text-xs" style={{ color: 'var(--steel)' }}>Нажмите на строку, чтобы изменить цену</p>
+              <h2 className="text-lg font-bold text-white">Настройки</h2>
+              <p className="text-xs" style={{ color: 'var(--steel)' }}>Кликните на название или цену — изменится. «+» — добавить пункт</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl mb-5 text-xs"
             style={{ background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.2)', color: '#4ade80' }}>
             <Icon name="Pencil" size={12} />
-            Все цены доступны для редактирования — кликните на строку и введите новое значение
+            Кликните на любой текст или цену для редактирования. Заголовок секции тоже редактируется.
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="glass-card p-5">
-              <div className="text-xs font-bold text-white tracking-widest mb-3">ТИПЫ ВОРОТ</div>
-              <PriceRow label="Откатные" value={gatePrices.sliding} onChange={v => setGatePrices(p => ({ ...p, sliding: v }))} />
-              <PriceRow label="Распашные" value={gatePrices.swing} onChange={v => setGatePrices(p => ({ ...p, swing: v }))} />
-              <PriceRow label="Распашные + калитка" value={gatePrices.swing_wicket} onChange={v => setGatePrices(p => ({ ...p, swing_wicket: v }))} />
-              <PriceRow label="Отдельная калитка" value={wicketPrice} onChange={setWicketPrice} />
+
+            {/* Типы ворот */}
+            <EditableSection
+              title={secTitles.gate}
+              items={gateItems}
+              onTitleChange={t => setSecTitles(s => ({ ...s, gate: t }))}
+              onItemChange={(id, upd) => syncGateItem(id, upd)}
+              onItemDelete={id => setGateItems(prev => prev.filter(i => i.id !== id))}
+              onItemAdd={() => setGateItems(prev => [...prev, { id: makeId(), label: 'Новый тип', price: 30000 }])}
+            />
+
+            {/* Заполнение */}
+            <EditableSection
+              title={secTitles.fill}
+              items={fillItems}
+              suffix="₽/м²"
+              onTitleChange={t => setSecTitles(s => ({ ...s, fill: t }))}
+              onItemChange={(id, upd) => syncFillItem(id, upd)}
+              onItemDelete={id => setFillItems(prev => prev.filter(i => i.id !== id))}
+              onItemAdd={() => setFillItems(prev => [...prev, { id: makeId(), label: 'Новый материал', price: 1000, suffix: '₽/м²' }])}
+            />
+
+            {/* Монтажные работы */}
+            <EditableSection
+              title={secTitles.install}
+              items={installItems}
+              onTitleChange={t => setSecTitles(s => ({ ...s, install: t }))}
+              onItemChange={(id, upd) => syncInstallItem(id, upd)}
+              onItemDelete={id => setInstallItems(prev => prev.filter(i => i.id !== id))}
+              onItemAdd={() => {
+                const newItem: EditItem = { id: makeId(), label: 'Новая услуга', price: 5000 };
+                setInstallItems(prev => [...prev, newItem]);
+              }}
+            />
+
+            {/* Доптовары */}
+            <EditableSection
+              title={secTitles.extras}
+              items={extraItems}
+              onTitleChange={t => setSecTitles(s => ({ ...s, extras: t }))}
+              onItemChange={(id, upd) => setExtraItems(prev => prev.map(i => i.id === id ? upd : i))}
+              onItemDelete={id => setExtraItems(prev => prev.filter(i => i.id !== id))}
+              onItemAdd={() => setExtraItems(prev => [...prev, { id: makeId(), label: 'Новый товар', price: 2000 }])}
+            />
+
+            {/* Автоматика */}
+            <div className="md:col-span-2">
+              <EditableSection
+                title={secTitles.auto}
+                items={autoItems}
+                onTitleChange={t => setSecTitles(s => ({ ...s, auto: t }))}
+                onItemChange={(id, upd) => setAutoItems(prev => prev.map(i => i.id === id ? upd : i))}
+                onItemDelete={id => setAutoItems(prev => prev.filter(i => i.id !== id))}
+                onItemAdd={() => setAutoItems(prev => [...prev, { id: makeId(), label: 'Новый комплект', price: 25000 }])}
+              />
             </div>
 
-            <div className="glass-card p-5">
-              <div className="text-xs font-bold text-white tracking-widest mb-3">ЗАПОЛНЕНИЕ (₽/м²)</div>
-              {(Object.keys(fillPrices) as FillType[]).map(ft => (
-                <PriceRow key={ft} label={FILL_LABELS[ft]} value={fillPrices[ft]} suffix="₽/м²"
-                  onChange={v => setFillPrices(p => ({ ...p, [ft]: v }))} />
-              ))}
-            </div>
-
-            <div className="glass-card p-5">
-              <div className="text-xs font-bold text-white tracking-widest mb-3">МОНТАЖНЫЕ РАБОТЫ</div>
-              <PriceRow label="Монтаж автоматики" value={instAuto} onChange={setInstAuto} />
-              <PriceRow label="Установка заполнения" value={instFillM2} suffix="₽/м²" onChange={setInstFillM2} />
-              <PriceRow label="Установка ворот" value={instGate} onChange={setInstGate} />
-              <PriceRow label="Установка опорной рамы" value={instFrame} onChange={setInstFrame} />
-              <PriceRow label="Монтаж калитки" value={instWicket} onChange={setInstWicketP} />
-            </div>
-
-            <div className="glass-card p-5">
-              <div className="text-xs font-bold text-white tracking-widest mb-3">ДОПТОВАРЫ (фиксированные)</div>
-              {EXTRA_OPTIONS.map(o => (
-                <div key={o.id} className="flex justify-between py-2.5 text-sm"
-                  style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                  <span style={{ color: 'var(--steel)' }}>{o.label}</span>
-                  <span className="font-mono price-tag">{fmt(o.price)}</span>
-                </div>
-              ))}
-            </div>
           </div>
         </div>
       )}

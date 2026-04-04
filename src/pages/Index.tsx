@@ -186,25 +186,35 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
     <h2>Расчёт металлических ворот</h2>
     <div class="rnk">РНК: ${data.rnk} &nbsp;|&nbsp; Дата: ${new Date().toLocaleDateString('ru-RU')}</div>
     <table>
-      <thead><tr><th>Наименование</th><th>Характеристика</th><th>Стоимость</th></tr></thead>
+      <thead><tr><th>Наименование</th><th>Характеристика</th></tr></thead>
       <tbody>
-        <tr><td>Тип ворот</td><td>${data.gateType === 'sliding' ? 'Откатные' : data.gateType === 'swing' ? 'Распашные' : 'Распашные с калиткой'}</td><td class="money">${fmt(DEFAULT_GATE_PRICES[data.gateType])} </td></tr>
-        <tr class="tr-alt"><td>Размер</td><td>${(data.gateW/1000).toFixed(2)} м × ${(data.gateH/1000).toFixed(2)} м</td><td class="money">—</td></tr>
-        <tr><td>Площадь</td><td>${data.gateArea.toFixed(2)} м²${data.hasWicket ? ` + ${data.wicketArea.toFixed(2)} м² (калитка)` : ''}</td><td class="money">—</td></tr>
-        ${data.isNonStd ? `<tr class="tr-alt"><td>Надбавка нестандарт</td><td>+5%</td><td class="money" style="color:#e53e3e">+ ${fmt(Math.round(DEFAULT_GATE_PRICES[data.gateType]*0.05))}</td></tr>` : ''}
-        ${data.hasWicket ? `<tr><td>Калитка</td><td>${(data.wicketW/1000).toFixed(2)} м × ${(data.wicketH/1000).toFixed(2)} м</td><td class="money">${fmt(DEFAULT_WICKET_PRICE)}</td></tr>` : ''}
-        ${data.autoLabel !== 'Без автоматики' ? `<tr class="tr-alt"><td>Автоматика</td><td>${data.autoLabel}</td><td class="money">${fmt(AUTOMATION_OPTIONS.find(o=>o.label===data.autoLabel)?.price??0)}</td></tr>` : ''}
-        ${data.extras.map((e,i) => `<tr${i%2===0?' class="tr-alt"':''}><td>Доп. опция</td><td>${e}</td><td class="money">—</td></tr>`).join('')}
-        <tr><td>Заполнение</td><td>${FILL_LABELS[data.fillType]}</td><td class="money">${fmt(data.lineItems.find(r=>r.label.startsWith('Заполнение'))?.value??0)}</td></tr>
-        ${data.installAuto ? `<tr class="tr-alt"><td>Монтаж автоматики</td><td>Услуга</td><td class="money">${fmt(DEFAULT_INST_AUTO)}</td></tr>` : ''}
-        ${data.installFill ? `<tr><td>Установка заполнения</td><td>${DEFAULT_INST_FILL_M2} ₽/м²</td><td class="money">${fmt(DEFAULT_INST_FILL_M2 * data.gateArea)}</td></tr>` : ''}
-        ${data.installGate ? `<tr class="tr-alt"><td>Установка ворот</td><td>Услуга</td><td class="money">${fmt(DEFAULT_INST_GATE)}</td></tr>` : ''}
-        ${data.installFrame ? `<tr><td>Установка рамы</td><td>Услуга</td><td class="money">${fmt(DEFAULT_INST_FRAME)}</td></tr>` : ''}
-        ${data.hasWicket && data.installWicket ? `<tr class="tr-alt"><td>Монтаж калитки</td><td>Услуга</td><td class="money">${fmt(DEFAULT_INST_WICKET)}</td></tr>` : ''}
-        <tr style="background:#f0f4f8;font-weight:600"><td colspan="2">Сумма без наценки</td><td class="money">${fmt(data.subtotal)}</td></tr>
-        <tr class="total-row"><td colspan="2">ИТОГО К ОПЛАТЕ</td><td class="money">${fmt(data.total)}</td></tr>
+        <tr><td>Тип ворот</td><td>${data.gateType === 'sliding' ? 'Откатные' : data.gateType === 'swing' ? 'Распашные' : 'Распашные с калиткой'}</td></tr>
+        <tr class="tr-alt"><td>Размер</td><td>${(data.gateW/1000).toFixed(2)} м × ${(data.gateH/1000).toFixed(2)} м</td></tr>
+        <tr><td>Площадь</td><td>${data.gateArea.toFixed(2)} м²${data.hasWicket ? ` + ${data.wicketArea.toFixed(2)} м² (калитка)` : ''}</td></tr>
+        ${data.isNonStd ? `<tr class="tr-alt"><td>Надбавка нестандарт</td><td>+5%</td></tr>` : ''}
+        ${data.hasWicket ? `<tr><td>Калитка</td><td>${(data.wicketW/1000).toFixed(2)} м × ${(data.wicketH/1000).toFixed(2)} м</td></tr>` : ''}
+        ${data.autoLabel !== 'Без автоматики' ? `<tr class="tr-alt"><td>Автоматика</td><td>${data.autoLabel}</td></tr>` : ''}
+        ${data.extras.map((e,i) => `<tr${i%2===0?' class="tr-alt"':''}><td>Доп. опция</td><td>${e}</td></tr>`).join('')}
+        <tr><td>Заполнение</td><td>${FILL_LABELS[data.fillType]}</td></tr>
       </tbody>
     </table>
+    ${(data.installAuto || data.installFill || data.installGate || data.installFrame || (data.hasWicket && data.installWicket)) ? `
+    <table>
+      <thead><tr><th>Монтажные работы</th><th class="money">Стоимость</th></tr></thead>
+      <tbody>
+        ${data.installAuto ? `<tr><td>Монтаж автоматики</td><td class="money">${fmt(DEFAULT_INST_AUTO)}</td></tr>` : ''}
+        ${data.installFill ? `<tr class="tr-alt"><td>Установка заполнения (${DEFAULT_INST_FILL_M2} ₽/м²)</td><td class="money">${fmt(DEFAULT_INST_FILL_M2 * data.gateArea)}</td></tr>` : ''}
+        ${data.installGate ? `<tr><td>Установка ворот</td><td class="money">${fmt(DEFAULT_INST_GATE)}</td></tr>` : ''}
+        ${data.installFrame ? `<tr class="tr-alt"><td>Установка опорной рамы</td><td class="money">${fmt(DEFAULT_INST_FRAME)}</td></tr>` : ''}
+        ${data.hasWicket && data.installWicket ? `<tr><td>Монтаж калитки</td><td class="money">${fmt(DEFAULT_INST_WICKET)}</td></tr>` : ''}
+        <tr class="total-row"><td>ИТОГО К ОПЛАТЕ</td><td class="money">${fmt(data.total)}</td></tr>
+      </tbody>
+    </table>` : `
+    <table>
+      <tbody>
+        <tr class="total-row"><td>ИТОГО К ОПЛАТЕ</td><td class="money">${fmt(data.total)}</td></tr>
+      </tbody>
+    </table>`}
     <div class="footer">Данное коммерческое предложение действительно 30 дней. МеталлКонструктор — профессиональный расчёт ворот.</div>
     </body></html>`;
 
@@ -265,32 +275,58 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
             ))}
           </div>
 
-          {/* Таблица позиций */}
+          {/* Таблица — состав (без цен) */}
+          <div className="rounded-xl overflow-hidden mb-4" style={{ border: '1px solid #e2e8f0' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr style={{ background: '#f0f4f8' }}>
+                  <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#4a5568', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #e2e8f0' }}>Наименование</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#4a5568', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #e2e8f0' }}>Характеристика</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  { label: 'Тип ворот', val: data.gateType === 'sliding' ? 'Откатные' : data.gateType === 'swing' ? 'Распашные' : 'Распашные с калиткой' },
+                  { label: 'Размер', val: `${(data.gateW/1000).toFixed(2)} м × ${(data.gateH/1000).toFixed(2)} м` },
+                  { label: 'Площадь', val: `${data.gateArea.toFixed(2)} м²${data.hasWicket ? ` + ${data.wicketArea.toFixed(2)} м² (калитка)` : ''}` },
+                  ...(data.isNonStd ? [{ label: 'Надбавка', val: 'Нестандартный размер +5%' }] : []),
+                  ...(data.hasWicket ? [{ label: 'Калитка', val: `${(data.wicketW/1000).toFixed(2)} × ${(data.wicketH/1000).toFixed(2)} м` }] : []),
+                  { label: 'Заполнение', val: FILL_LABELS[data.fillType] },
+                  ...(data.autoLabel !== 'Без автоматики' ? [{ label: 'Автоматика', val: data.autoLabel }] : []),
+                  ...data.extras.map(e => ({ label: 'Доп. опция', val: e })),
+                ].map((row, i) => (
+                  <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f8fafc' }}>
+                    <td style={{ padding: '8px 12px', fontSize: 13, color: '#718096', borderBottom: '1px solid #f0f4f8', whiteSpace: 'nowrap' }}>{row.label}</td>
+                    <td style={{ padding: '8px 12px', fontSize: 13, color: '#2d3748', borderBottom: '1px solid #f0f4f8', fontWeight: 500 }}>{row.val}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Таблица — монтажи + итог */}
           <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #e2e8f0' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#f0f4f8' }}>
-                  <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#4a5568', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #e2e8f0' }}>
-                    Наименование
-                  </th>
-                  <th style={{ padding: '8px 12px', textAlign: 'right', fontSize: 11, fontWeight: 700, color: '#4a5568', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #e2e8f0' }}>
-                    Стоимость
-                  </th>
+                  <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#4a5568', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #e2e8f0' }}>Монтажные работы</th>
+                  <th style={{ padding: '8px 12px', textAlign: 'right', fontSize: 11, fontWeight: 700, color: '#4a5568', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #e2e8f0' }}>Стоимость</th>
                 </tr>
               </thead>
               <tbody>
-                {data.lineItems.map((row, i) => (
+                {data.lineItems.filter(r =>
+                  r.label.startsWith('Монтаж') || r.label.startsWith('Установка')
+                ).map((row, i) => (
                   <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f8fafc' }}>
                     <td style={{ padding: '9px 12px', fontSize: 13, color: '#2d3748', borderBottom: '1px solid #f0f4f8' }}>{row.label}</td>
                     <td style={{ padding: '9px 12px', fontSize: 13, fontFamily: 'monospace', textAlign: 'right', color: '#2d3748', borderBottom: '1px solid #f0f4f8', whiteSpace: 'nowrap' }}>{fmt(row.value)}</td>
                   </tr>
                 ))}
-                {/* Subtotal row */}
-                <tr style={{ background: '#f0f4f8' }}>
-                  <td style={{ padding: '10px 12px', fontSize: 13, fontWeight: 600, color: '#4a5568', borderBottom: '1px solid #e2e8f0' }}>Сумма без наценки</td>
-                  <td style={{ padding: '10px 12px', fontSize: 13, fontFamily: 'monospace', textAlign: 'right', fontWeight: 600, color: '#4a5568', borderBottom: '1px solid #e2e8f0' }}>{fmt(data.subtotal)}</td>
-                </tr>
-                {/* Total */}
+                {data.lineItems.filter(r => r.label.startsWith('Монтаж') || r.label.startsWith('Установка')).length === 0 && (
+                  <tr style={{ background: 'white' }}>
+                    <td colSpan={2} style={{ padding: '9px 12px', fontSize: 13, color: '#a0aec0', borderBottom: '1px solid #f0f4f8', fontStyle: 'italic' }}>Монтажные работы не выбраны</td>
+                  </tr>
+                )}
                 <tr style={{ background: '#0A84FF' }}>
                   <td style={{ padding: '12px 12px', fontSize: 15, fontWeight: 800, color: 'white' }}>ИТОГО К ОПЛАТЕ</td>
                   <td style={{ padding: '12px 12px', fontSize: 18, fontFamily: 'monospace', textAlign: 'right', fontWeight: 900, color: 'white', whiteSpace: 'nowrap' }}>{fmt(data.total)}</td>
@@ -298,12 +334,6 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
               </tbody>
             </table>
           </div>
-
-          {data.markup > 0 && (
-            <div className="mt-3 text-xs text-center" style={{ color: '#718096' }}>
-              * Наценка {data.markup}% ({fmt(data.markupAmt)}) учтена в итоговой сумме
-            </div>
-          )}
 
           {/* Кнопки */}
           <div className="flex gap-3 mt-6">

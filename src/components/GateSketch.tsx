@@ -145,9 +145,10 @@ function SwingPanel({
 }
 
 /**
- * Калитка с анимацией.
- * openDir='left'  → pivot на левом краю, открывается влево (-80°)
- * openDir='right' → pivot на правом краю, открывается вправо (+80°)
+ * Калитка — реалистичная анимация.
+ * Вид сверху: дверь вращается вокруг петли (верхний угол у косяка).
+ * Pivot — верхний угол со стороны петель.
+ * При открытии поворот на 85° + дуга-след на полу.
  */
 function WicketPanel({
   x, y, w, h, fillType, fillDir, patId, isOpen, openDir,
@@ -156,22 +157,56 @@ function WicketPanel({
   fillType: FillType; fillDir: FillDir; patId: string;
   isOpen: boolean; openDir: OpenDir;
 }) {
-  const pivotX = openDir === 'left' ? x : x + w;
-  const pivotY = y + h;
-  const angle  = isOpen ? (openDir === 'left' ? -80 : 80) : 0;
-  // ручка с противоположной стороны от петли
-  const handleX = openDir === 'left' ? x + w * 0.8 : x + w * 0.2;
+  // Петли: при openDir='left' петли на левом столбе → pivot левый верхний угол
+  // При openDir='right' петли на правом столбе → pivot правый верхний угол
+  const pivotX = openDir === 'left' ? x       : x + w;
+  const pivotY = y; // верхний край — как у реальной двери (петли сверху и снизу, ось вертикальная)
+
+  // Реалистичный угол: дверь открывается на 85° вбок
+  const angle = isOpen ? (openDir === 'left' ? -85 : 85) : 0;
+
+  // Ручка с противоположной стороны от петель
+  const handleX = openDir === 'left' ? x + w * 0.82 : x + w * 0.18;
+  const handleY = y + h * 0.52;
+
+  // Дуга-след на полу (четверть окружности радиусом w)
+  // Рисуем только когда открыто
+  const arcR = w;
+  // Для openDir='left': дуга из (x, groundY) до (x - w, groundY) через верхнюю точку
+  // SVG arc: sweep=0 для против часовой
+  const arcX1 = openDir === 'left' ? x       : x + w;
+  const arcX2 = openDir === 'left' ? x - arcR : x + w + arcR;
+  const arcY  = y + h; // низ двери
 
   return (
-    <g style={{
-      transformOrigin: `${pivotX}px ${pivotY}px`,
-      transform: `rotate(${angle}deg)`,
-      transition: 'transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)',
-    }}>
-      <rect x={x} y={y} width={w} height={h} fill={`url(#${patId})`} rx="1" />
-      <rect x={x} y={y} width={w} height={h} fill="none" stroke="#22C55E" strokeWidth="1.5" rx="1" />
-      <line x1={x + 2} y1={y + h * 0.5} x2={x + w - 2} y2={y + h * 0.5} stroke="#22C55E" strokeWidth="1" opacity="0.5" />
-      <circle cx={handleX} cy={y + h * 0.5} r={3} fill="#22C55E" />
+    <g>
+      {/* Дуга-след открытия на полу */}
+      <path
+        d={`M ${arcX1} ${arcY} A ${arcR} ${arcR} 0 0 ${openDir === 'left' ? 0 : 1} ${arcX2} ${arcY}`}
+        fill="none"
+        stroke="#22C55E"
+        strokeWidth="1"
+        strokeDasharray="3 3"
+        opacity="0.35"
+      />
+      {/* Само полотно калитки */}
+      <g style={{
+        transformOrigin: `${pivotX}px ${pivotY}px`,
+        transform: `rotate(${angle}deg)`,
+        transition: 'transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+      }}>
+        <rect x={x} y={y} width={w} height={h} fill={`url(#${patId})`} rx="1" />
+        <rect x={x} y={y} width={w} height={h} fill="none" stroke="#22C55E" strokeWidth="1.5" rx="1" />
+        {/* горизонтальное ребро */}
+        <line x1={x + 2} y1={y + h * 0.48} x2={x + w - 2} y2={y + h * 0.48}
+          stroke="#22C55E" strokeWidth="1" opacity="0.45" />
+        {/* ручка */}
+        <rect
+          x={handleX - 2} y={handleY - 7}
+          width={4} height={14}
+          fill="#22C55E" rx="2"
+        />
+      </g>
     </g>
   );
 }
@@ -204,28 +239,23 @@ function DimArrow({ x1, y1, x2, y2, label, color = '#0A84FF' }: {
 
 // Мини-кнопка переключения направления прямо на SVG
 function DirToggle({
-  cx, cy, dir, label, active, onClick,
+  cx, cy, dir, active, onClick,
 }: {
-  cx: number; cy: number; dir: OpenDir; label: string; active: boolean; onClick: () => void;
+  cx: number; cy: number; dir: OpenDir; active: boolean; onClick: () => void;
 }) {
-  const W = 44; const H = 18;
+  const S = 14; // размер квадрата
+  const col = active ? '#EF4444' : '#374151';
+  const fill = active ? 'rgba(239,68,68,0.18)' : 'rgba(255,255,255,0.04)';
+  const stroke = active ? '#EF4444' : 'rgba(255,255,255,0.1)';
+  // стрелка
+  const ax = dir === 'left'
+    ? [`M${cx - 4},${cy}`, `L${cx + 3},${cy - 3}`, `L${cx + 3},${cy + 3} Z`].join(' ')
+    : [`M${cx + 4},${cy}`, `L${cx - 3},${cy - 3}`, `L${cx - 3},${cy + 3} Z`].join(' ');
   return (
     <g onClick={onClick} style={{ cursor: 'pointer' }}>
-      <rect x={cx - W / 2} y={cy - H / 2} width={W} height={H} rx="9"
-        fill={active ? 'rgba(10,132,255,0.25)' : 'rgba(255,255,255,0.06)'}
-        stroke={active ? '#0A84FF' : 'rgba(255,255,255,0.12)'}
-        strokeWidth="1"
-      />
-      {/* стрелка */}
-      {dir === 'left'
-        ? <path d={`M${cx - 6},${cy} L${cx + 2},${cy - 4} L${cx + 2},${cy + 4} Z`} fill={active ? '#0A84FF' : '#4B5563'} />
-        : <path d={`M${cx + 6},${cy} L${cx - 2},${cy - 4} L${cx - 2},${cy + 4} Z`} fill={active ? '#0A84FF' : '#4B5563'} />
-      }
-      <text x={cx + (dir === 'left' ? 8 : -8)} y={cy + 3.5}
-        fill={active ? '#0A84FF' : '#6B7280'}
-        fontSize="7" fontFamily="IBM Plex Mono, monospace" textAnchor="middle">
-        {label}
-      </text>
+      <rect x={cx - S / 2} y={cy - S / 2} width={S} height={S} rx="4"
+        fill={fill} stroke={stroke} strokeWidth="1" />
+      <path d={ax} fill={col} />
     </g>
   );
 }
@@ -324,11 +354,11 @@ const GateSketch: React.FC<GateSketchProps> = ({
               </g>
             ))}
             {/* Переключатель направления откатывания */}
-            <text x={gateCX} y={btnY - 20} fill="#6B7280" fontSize="7.5"
+            <text x={gateCX} y={btnY - 14} fill="#6B7280" fontSize="7"
               fontFamily="IBM Plex Mono, monospace" textAnchor="middle">ОТКАТ</text>
-            <DirToggle cx={gateCX - 26} cy={btnY} dir="left" label="←" active={openDir === 'left'}
+            <DirToggle cx={gateCX - 18} cy={btnY} dir="left" active={openDir === 'left'}
               onClick={() => onOpenDirChange('left')} />
-            <DirToggle cx={gateCX + 26} cy={btnY} dir="right" label="→" active={openDir === 'right'}
+            <DirToggle cx={gateCX + 18} cy={btnY} dir="right" active={openDir === 'right'}
               onClick={() => onOpenDirChange('right')} />
           </g>
         );
@@ -382,11 +412,11 @@ const GateSketch: React.FC<GateSketchProps> = ({
           )}
 
           {/* Переключатель направления ворот */}
-          <text x={gateCX} y={btnY - 20} fill="#6B7280" fontSize="7.5"
+          <text x={gateCX} y={btnY - 14} fill="#6B7280" fontSize="7"
             fontFamily="IBM Plex Mono, monospace" textAnchor="middle">ОТКРЫТИЕ</text>
-          <DirToggle cx={gateCX - 26} cy={btnY} dir="left" label="←" active={openDir === 'left'}
+          <DirToggle cx={gateCX - 18} cy={btnY} dir="left" active={openDir === 'left'}
             onClick={() => onOpenDirChange('left')} />
-          <DirToggle cx={gateCX + 26} cy={btnY} dir="right" label="→" active={openDir === 'right'}
+          <DirToggle cx={gateCX + 18} cy={btnY} dir="right" active={openDir === 'right'}
             onClick={() => onOpenDirChange('right')} />
         </g>
       )}
@@ -415,10 +445,10 @@ const GateSketch: React.FC<GateSketchProps> = ({
             КАЛИТКА
           </text>
           {/* Переключатель направления калитки */}
-          <DirToggle cx={wkCX - 26} cy={wkY + wkH / 2} dir="left" label="←"
+          <DirToggle cx={wkCX - 18} cy={wkY + wkH / 2} dir="left"
             active={wicketOpenDir === 'left'}
             onClick={() => onWicketOpenDirChange('left')} />
-          <DirToggle cx={wkCX + 26} cy={wkY + wkH / 2} dir="right" label="→"
+          <DirToggle cx={wkCX + 18} cy={wkY + wkH / 2} dir="right"
             active={wicketOpenDir === 'right'}
             onClick={() => onWicketOpenDirChange('right')} />
         </g>
@@ -427,10 +457,10 @@ const GateSketch: React.FC<GateSketchProps> = ({
       {/* Встроенная калитка — свои переключатели направления */}
       {gateType === 'swing_wicket' && hasWicket && (
         <g>
-          <DirToggle cx={gX + gW * 0.75 - 22} cy={gY + gH - wkH / 2} dir="left" label="←"
+          <DirToggle cx={gX + gW * 0.75 - 18} cy={gY + gH - wkH / 2} dir="left"
             active={wicketOpenDir === 'left'}
             onClick={() => onWicketOpenDirChange('left')} />
-          <DirToggle cx={gX + gW * 0.75 + 22} cy={gY + gH - wkH / 2} dir="right" label="→"
+          <DirToggle cx={gX + gW * 0.75 + 18} cy={gY + gH - wkH / 2} dir="right"
             active={wicketOpenDir === 'right'}
             onClick={() => onWicketOpenDirChange('right')} />
         </g>

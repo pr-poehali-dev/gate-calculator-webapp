@@ -28,92 +28,59 @@ function FillPattern({ fillType, fillDir, id }: { fillType: FillType; fillDir: F
   const c = FILL_COLORS[fillType];
   const isV = fillDir === 'vertical';
 
-  // Штакетник — всегда вертикальный (планки), при горизонтали меняем ориентацию
   if (fillType === 'shtaketnik') {
-    if (isV) {
-      // вертикальные планки
-      return (
-        <pattern id={id} patternUnits="userSpaceOnUse" width="14" height="4">
-          <rect width="10" height="4" fill={c.stripe} rx="1" />
-        </pattern>
-      );
-    } else {
-      // горизонтальные планки
-      return (
-        <pattern id={id} patternUnits="userSpaceOnUse" width="4" height="14">
-          <rect width="4" height="10" fill={c.stripe} rx="1" />
-        </pattern>
-      );
-    }
+    return isV ? (
+      <pattern id={id} patternUnits="userSpaceOnUse" width="14" height="4">
+        <rect width="10" height="4" fill={c.stripe} rx="1" />
+      </pattern>
+    ) : (
+      <pattern id={id} patternUnits="userSpaceOnUse" width="4" height="14">
+        <rect width="4" height="10" fill={c.stripe} rx="1" />
+      </pattern>
+    );
   }
-
-  // Жалюзи
   if (fillType === 'jalusi') {
-    if (isV) {
-      // вертикальные ламели
-      return (
-        <pattern id={id} patternUnits="userSpaceOnUse" width="18" height="4">
-          <rect width="14" height="4" fill={c.stripe} rx="1" />
-          <rect x="14" width="4" height="4" fill={c.bg} />
-        </pattern>
-      );
-    } else {
-      // горизонтальные ламели (оригинал)
-      return (
-        <pattern id={id} patternUnits="userSpaceOnUse" width="4" height="18">
-          <rect width="4" height="14" fill={c.stripe} rx="1" />
-          <rect y="14" width="4" height="4" fill={c.bg} />
-        </pattern>
-      );
-    }
+    return isV ? (
+      <pattern id={id} patternUnits="userSpaceOnUse" width="18" height="4">
+        <rect width="14" height="4" fill={c.stripe} rx="1" />
+        <rect x="14" width="4" height="4" fill={c.bg} />
+      </pattern>
+    ) : (
+      <pattern id={id} patternUnits="userSpaceOnUse" width="4" height="18">
+        <rect width="4" height="14" fill={c.stripe} rx="1" />
+        <rect y="14" width="4" height="4" fill={c.bg} />
+      </pattern>
+    );
   }
-
-  // Ранчо
   if (fillType === 'rancho') {
-    if (isV) {
-      // вертикальные широкие планки
-      return (
-        <pattern id={id} patternUnits="userSpaceOnUse" width="60" height="4">
-          <rect width="56" height="4" fill={c.stripe} rx="1" />
-          <rect x="56" width="4" height="4" fill={c.bg} />
-        </pattern>
-      );
-    } else {
-      // горизонтальные (оригинал)
-      return (
-        <pattern id={id} patternUnits="userSpaceOnUse" width="4" height="60">
-          <rect width="4" height="56" fill={c.stripe} rx="1" />
-          <rect y="56" width="4" height="4" fill={c.bg} />
-        </pattern>
-      );
-    }
+    return isV ? (
+      <pattern id={id} patternUnits="userSpaceOnUse" width="60" height="4">
+        <rect width="56" height="4" fill={c.stripe} rx="1" />
+        <rect x="56" width="4" height="4" fill={c.bg} />
+      </pattern>
+    ) : (
+      <pattern id={id} patternUnits="userSpaceOnUse" width="4" height="60">
+        <rect width="4" height="56" fill={c.stripe} rx="1" />
+        <rect y="56" width="4" height="4" fill={c.bg} />
+      </pattern>
+    );
   }
-
-  // Профлист / Металлосайдинг
   const ribSize = fillType === 'proflist' ? 16 : 24;
-  if (isV) {
-    // вертикальные рёбра
-    return (
-      <pattern id={id} patternUnits="userSpaceOnUse" width={ribSize} height="4">
-        <rect width={ribSize - 3} height="4" fill={c.stripe} />
-        <rect x={ribSize - 3} width="3" height="4" fill={c.bg} />
-      </pattern>
-    );
-  } else {
-    // горизонтальные рёбра (оригинал)
-    return (
-      <pattern id={id} patternUnits="userSpaceOnUse" width="4" height={ribSize}>
-        <rect width="4" height={ribSize - 3} fill={c.stripe} />
-        <rect y={ribSize - 3} width="4" height="3" fill={c.bg} />
-      </pattern>
-    );
-  }
+  return isV ? (
+    <pattern id={id} patternUnits="userSpaceOnUse" width={ribSize} height="4">
+      <rect width={ribSize - 3} height="4" fill={c.stripe} />
+      <rect x={ribSize - 3} width="3" height="4" fill={c.bg} />
+    </pattern>
+  ) : (
+    <pattern id={id} patternUnits="userSpaceOnUse" width="4" height={ribSize}>
+      <rect width="4" height={ribSize - 3} fill={c.stripe} />
+      <rect y={ribSize - 3} width="4" height="3" fill={c.bg} />
+    </pattern>
+  );
 }
 
-// Горизонтальные рёбра жёсткости на панели (зависят от направления заполнения)
 function PanelRibs({ x, y, w, h, fillDir }: { x: number; y: number; w: number; h: number; fillDir: FillDir }) {
   if (fillDir === 'vertical') {
-    // Вертикальные рёбра жёсткости
     return (
       <>
         <line x1={x + w * 0.33} y1={y + 2} x2={x + w * 0.33} y2={y + h - 2} stroke="#3A4E64" strokeWidth="1.5" />
@@ -130,7 +97,7 @@ function PanelRibs({ x, y, w, h, fillDir }: { x: number; y: number; w: number; h
   );
 }
 
-// SVG-панель с анимацией (распашные)
+// Распашная панель ворот
 function SwingPanel({
   x, y, w, h, fillType, fillDir, patId, isOpen, side,
 }: {
@@ -147,14 +114,37 @@ function SwingPanel({
       transform: `rotate(${angle}deg)`,
       transition: 'transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)',
     }}>
-      {isOpen && (
-        <rect x={x} y={y} width={w} height={h}
-          fill="rgba(0,0,0,0.25)" rx="1"
-          style={{ filter: 'blur(4px)', transform: 'translateY(4px)' }} />
-      )}
       <rect x={x} y={y} width={w} height={h} fill={`url(#${patId})`} rx="1" />
       <rect x={x} y={y} width={w} height={h} fill="none" stroke="#3A4E64" strokeWidth="2" rx="1" />
       <PanelRibs x={x} y={y} w={w} h={h} fillDir={fillDir} />
+    </g>
+  );
+}
+
+// Калитка с анимацией — открывается вправо
+function WicketPanel({
+  x, y, w, h, fillType, fillDir, patId, isOpen,
+}: {
+  x: number; y: number; w: number; h: number;
+  fillType: FillType; fillDir: FillDir; patId: string; isOpen: boolean;
+}) {
+  // Pivot — правый нижний угол (петли справа, открывается влево наружу)
+  const pivotX = x + w;
+  const pivotY = y + h;
+  const angle = isOpen ? -80 : 0;
+
+  return (
+    <g style={{
+      transformOrigin: `${pivotX}px ${pivotY}px`,
+      transform: `rotate(${angle}deg)`,
+      transition: 'transform 0.55s cubic-bezier(0.4, 0, 0.2, 1)',
+    }}>
+      <rect x={x} y={y} width={w} height={h} fill={`url(#${patId})`} rx="1" />
+      <rect x={x} y={y} width={w} height={h} fill="none" stroke="#22C55E" strokeWidth="1.5" rx="1" />
+      {/* ребро жёсткости */}
+      <line x1={x + 2} y1={y + h * 0.5} x2={x + w - 2} y2={y + h * 0.5} stroke="#22C55E" strokeWidth="1" opacity="0.5" />
+      {/* ручка */}
+      <circle cx={x + w * 0.25} cy={y + h * 0.5} r={3} fill="#22C55E" />
     </g>
   );
 }
@@ -189,27 +179,56 @@ const GateSketch: React.FC<GateSketchProps> = ({
   width, height, gateType, fillType, fillDir, hasWicket,
   wicketWidth, wicketHeight, isOpen
 }) => {
-  const SVG_W = 380;
-  const SVG_H = 280;
-  const MARGIN = { top: 36, left: 28, right: 28, bottom: 44 };
+  // Если есть отдельная калитка (не встроенная) — расширяем viewBox вправо
+  const hasExtraWicket = hasWicket && gateType !== 'swing_wicket';
 
-  const gW = SVG_W - MARGIN.left - MARGIN.right;
+  const SVG_W_BASE = 380;
+  const SVG_H = 280;
+  const MARGIN = { top: 36, left: 44, right: 28, bottom: 44 };
+
+  const postW = 12;
+  const railH = 20;
+  const GAP   = 10; // зазор между воротами и калиткой
+
+  // Пропорция калитки относительно ворот
+  const wRatio  = Math.min(wicketWidth  / width,  0.32);
+  const whRatio = Math.min(wicketHeight / height, 1.0);
+
+  // Высота зоны рисования
   const gH = SVG_H - MARGIN.top - MARGIN.bottom;
-  const gX = MARGIN.left;
   const gY = MARGIN.top;
 
-  const postW = 14;
-  const railH = 20;
+  // Ширина ворот + опциональная калитка
+  // Хотим разместить ворота и калитку в доступной ширине
+  const availW = SVG_W_BASE - MARGIN.left - MARGIN.right;
+  const gW = hasExtraWicket
+    ? Math.round(availW / (1 + wRatio + (postW * 3 + GAP) / availW))
+    : availW;
+  const gX = MARGIN.left;
 
-  const wRatio  = Math.min(wicketWidth  / width,  0.28);
-  const whRatio = Math.min(wicketHeight / height, 1.0);
-  const wkW = gW * wRatio;
-  const wkH = gH * whRatio;
+  const wkW = Math.round(gW * wRatio);
+  const wkH = Math.round(gH * whRatio);
+
+  // Позиция столба и калитки справа от ворот
+  const rightPostX  = gX + gW;
+  const wkPostX     = rightPostX + postW + GAP;
+  const wkX         = wkPostX + postW;
+  const wkFarPostX  = wkX + wkW;
+  const wkY         = gY + gH - wkH;
+
+  // Общая ширина SVG
+  const SVG_W = hasExtraWicket
+    ? wkFarPostX + postW + MARGIN.right
+    : SVG_W_BASE;
 
   const groundY = gY + gH;
 
   return (
-    <svg viewBox={`0 0 ${SVG_W} ${SVG_H}`} width="100%" height="100%" style={{ display: 'block', overflow: 'visible' }}>
+    <svg
+      viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+      width="100%" height="100%"
+      style={{ display: 'block', overflow: 'visible' }}
+    >
       <defs>
         <FillPattern fillType={fillType} fillDir={fillDir} id="fill-main" />
         <FillPattern fillType={fillType} fillDir={fillDir} id="fill-wk" />
@@ -222,6 +241,7 @@ const GateSketch: React.FC<GateSketchProps> = ({
         </linearGradient>
       </defs>
 
+      {/* Фон */}
       <rect width={SVG_W} height={SVG_H} fill="url(#skyGrad)" rx="10" />
       <rect x={0} y={groundY} width={SVG_W} height={SVG_H - groundY} fill="#161F2E" />
       <line x1={0} y1={groundY} x2={SVG_W} y2={groundY} stroke="#2A3A4E" strokeWidth="1.5" />
@@ -229,12 +249,15 @@ const GateSketch: React.FC<GateSketchProps> = ({
       {/* ── ОТКАТНЫЕ ── */}
       {gateType === 'sliding' && (
         <g filter="url(#shadow)">
+          {/* Рельс */}
           <rect x={gX - 30} y={groundY - railH} width={gW + 60} height={railH}
             fill="#1A2535" stroke="#2A3A50" strokeWidth="1" />
           <line x1={gX - 30} y1={groundY - railH / 2} x2={gX + gW + 30} y2={groundY - railH / 2}
             stroke="#0A84FF" strokeWidth="1" strokeDasharray="6 4" opacity="0.5" />
+          {/* Левый столб */}
           <rect x={gX - postW} y={gY - 10} width={postW} height={gH + 10 - railH}
             fill="#1E2D40" stroke="#2A3A50" strokeWidth="1.5" />
+          {/* Полотно */}
           <g style={{
             transform: isOpen ? `translateX(${gW * 0.58}px)` : 'translateX(0)',
             transition: 'transform 0.55s cubic-bezier(0.4,0,0.2,1)',
@@ -243,8 +266,10 @@ const GateSketch: React.FC<GateSketchProps> = ({
             <rect x={gX} y={gY} width={gW} height={gH - railH} fill="none" stroke="#3A4E64" strokeWidth="2" rx="1" />
             <PanelRibs x={gX} y={gY} w={gW} h={gH - railH} fillDir={fillDir} />
           </g>
+          {/* Правый столб */}
           <rect x={gX + gW} y={gY - 10} width={postW} height={gH + 10 - railH}
             fill="#1E2D40" stroke="#2A3A50" strokeWidth="1.5" />
+          {/* Ролики */}
           {[gX + 30, gX + gW - 30].map((cx, i) => (
             <g key={i}>
               <circle cx={cx} cy={groundY - railH / 2} r={7} fill="#243040" stroke="#0A84FF" strokeWidth="1.5" />
@@ -254,11 +279,13 @@ const GateSketch: React.FC<GateSketchProps> = ({
         </g>
       )}
 
-      {/* ── РАСПАШНЫЕ ── */}
+      {/* ── РАСПАШНЫЕ (с или без встроенной калитки) ── */}
       {(gateType === 'swing' || gateType === 'swing_wicket') && (
         <g>
+          {/* Столбы */}
           <rect x={gX - postW} y={gY - 10} width={postW} height={gH + 10} fill="#1E2D40" stroke="#2A3A50" strokeWidth="1.5" />
           <rect x={gX + gW}    y={gY - 10} width={postW} height={gH + 10} fill="#1E2D40" stroke="#2A3A50" strokeWidth="1.5" />
+          {/* Петли */}
           {[0.2, 0.5, 0.8].map((f, i) => (
             <g key={i}>
               <rect x={gX - postW - 1} y={gY + gH * f - 5} width={postW + 7} height={10} fill="#0A84FF" rx="2" opacity="0.85" />
@@ -266,23 +293,42 @@ const GateSketch: React.FC<GateSketchProps> = ({
             </g>
           ))}
 
+          {/* Левая и правая створки */}
           <SwingPanel x={gX} y={gY} w={gW / 2 - 1} h={gH}
             fillType={fillType} fillDir={fillDir} patId="fill-main" isOpen={isOpen} side="left" />
           <SwingPanel x={gX + gW / 2 + 1} y={gY} w={gW / 2 - 1} h={gH}
             fillType={fillType} fillDir={fillDir} patId="fill-main" isOpen={isOpen} side="right" />
 
-          {/* Калитка внутри (swing_wicket) */}
-          {gateType === 'swing_wicket' && hasWicket && !isOpen && (
-            <g>
-              <rect x={gX + gW / 2 - wkW - 8} y={gY + gH - wkH}
-                width={wkW} height={wkH}
-                fill="url(#fill-wk)" stroke="#22C55E" strokeWidth="1.5" rx="1" />
-              <circle cx={gX + gW / 2 - wkW - 8 + wkW * 0.25} cy={gY + gH - wkH / 2} r={3} fill="#22C55E" />
-              <text x={gX + gW / 2 - wkW / 2 - 8} y={gY + gH - wkH - 10}
-                fill="#22C55E" fontSize="8" fontFamily="IBM Plex Mono, monospace" textAnchor="middle">КАЛИТКА</text>
-            </g>
+          {/* Встроенная калитка (swing_wicket) — анимируется как панель в правой створке */}
+          {gateType === 'swing_wicket' && (
+            <>
+              {/* Лейбл */}
+              <text
+                x={gX + gW * 0.75}
+                y={gY - 4}
+                fill="#22C55E" fontSize="7.5" fontFamily="IBM Plex Mono, monospace" textAnchor="middle"
+                style={{
+                  opacity: isOpen ? 0 : 1,
+                  transition: 'opacity 0.3s',
+                }}
+              >
+                КАЛИТКА
+              </text>
+              {/* Панель калитки поверх правой створки */}
+              <WicketPanel
+                x={gX + gW / 2 + 2}
+                y={gY + gH - wkH}
+                w={wkW}
+                h={wkH}
+                fillType={fillType}
+                fillDir={fillDir}
+                patId="fill-wk"
+                isOpen={isOpen}
+              />
+            </>
           )}
 
+          {/* Засов посередине (закрыто) */}
           {!isOpen && (
             <rect x={gX + gW / 2 - 2} y={gY + gH * 0.35}
               width={4} height={gH * 0.3}
@@ -291,25 +337,46 @@ const GateSketch: React.FC<GateSketchProps> = ({
         </g>
       )}
 
-      {/* Отдельная калитка */}
-      {hasWicket && gateType !== 'swing_wicket' && (
+      {/* ── ОТДЕЛЬНАЯ КАЛИТКА (откатные или обычные распашные + калитка рядом) ── */}
+      {hasExtraWicket && (
         <g filter="url(#shadow)">
-          <rect x={gX + gW + postW + 8 - 8} y={gY + gH - wkH - 6} width={8} height={wkH + 6}
+          {/* Левый столб калитки (общий с воротами или отдельный) */}
+          <rect x={wkPostX} y={gY + gH - wkH - 10} width={postW} height={wkH + 10}
             fill="#1E2D40" stroke="#2A3A50" strokeWidth="1.5" />
-          <rect x={gX + gW + postW + 8} y={gY + gH - wkH}
-            width={wkW} height={wkH}
-            fill="url(#fill-wk)" stroke="#22C55E" strokeWidth="1.5" rx="1" />
-          <rect x={gX + gW + postW + 8 + wkW} y={gY + gH - wkH - 6} width={8} height={wkH + 6}
+          {/* Правый столб калитки */}
+          <rect x={wkFarPostX} y={gY + gH - wkH - 10} width={postW} height={wkH + 10}
             fill="#1E2D40" stroke="#2A3A50" strokeWidth="1.5" />
-          <circle cx={gX + gW + postW + 8 + wkW * 0.3} cy={gY + gH - wkH / 2} r={3.5} fill="#22C55E" />
-          <text x={gX + gW + postW + 8 + wkW / 2} y={gY + gH - wkH - 12}
-            fill="#22C55E" fontSize="9" fontFamily="IBM Plex Mono, monospace" textAnchor="middle">КАЛИТКА</text>
+          {/* Петли на левом столбе */}
+          {[0.3, 0.7].map((f, i) => (
+            <rect key={i}
+              x={wkPostX + postW - 2} y={wkY + wkH * f - 4} width={postW - 2} height={8}
+              fill="#22C55E" rx="2" opacity="0.85" />
+          ))}
+          {/* Полотно калитки с анимацией */}
+          <WicketPanel
+            x={wkX}
+            y={wkY}
+            w={wkW}
+            h={wkH}
+            fillType={fillType}
+            fillDir={fillDir}
+            patId="fill-wk"
+            isOpen={isOpen}
+          />
+          {/* Лейбл */}
+          <text
+            x={wkX + wkW / 2}
+            y={wkY - 8}
+            fill="#22C55E" fontSize="8" fontFamily="IBM Plex Mono, monospace" textAnchor="middle"
+          >
+            КАЛИТКА
+          </text>
         </g>
       )}
 
       {/* Размерные стрелки */}
       <DimArrow x1={gX} y1={gY - 14} x2={gX + gW} y2={gY - 14} label={`${(width / 1000).toFixed(1)} м`} />
-      <DimArrow x1={gX - 22} y1={gY} x2={gX - 22} y2={gY + gH} label={`${(height / 1000).toFixed(1)} м`} />
+      <DimArrow x1={gX - 30} y1={gY} x2={gX - 30} y2={gY + gH} label={`${(height / 1000).toFixed(1)} м`} />
 
       {/* Подпись внизу */}
       <text x={SVG_W / 2} y={SVG_H - 8}

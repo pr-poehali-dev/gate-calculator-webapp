@@ -3,6 +3,12 @@ import ReactDOMServer from 'react-dom/server';
 import Icon from '@/components/ui/icon';
 import GateSketch, { GateType, FillType, FillDir, OpenDir } from '@/components/GateSketch';
 
+const API = {
+  auth:  'https://functions.poehali.dev/bb04e7bd-cb98-4489-ae05-d436a576ebeb',
+  kp:    'https://functions.poehali.dev/2c2ca876-e321-41c2-bda2-3436df330bb4',
+  users: 'https://functions.poehali.dev/2e7b4ba8-ae65-4e72-bf56-fa9baf5673e6',
+};
+
 // ─── Default prices (editable) ───────────────────────────────────────────────
 const DEFAULT_GATE_PRICES: Record<GateType, number> = { sliding: 35000, swing: 30000, swing_wicket: 40000 };
 const DEFAULT_FILL_PRICES: Record<FillType, number>  = { proflist: 1000, rancho: 3500, jalusi: 4500, siding: 1500, shtaketnik: 1300 };
@@ -487,19 +493,30 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
 }
 
 // ─── Вход через email ─────────────────────────────────────────────────────────
-function AuthModal({ onClose, onLogin }: { onClose: () => void; onLogin: (name: string, email: string) => void }) {
+function AuthModal({ onClose, onLogin }: { onClose: () => void; onLogin: (user: { id: number; name: string; email: string }) => void }) {
   const [isReg, setIsReg] = useState(false);
   const [name, setName]   = useState('');
   const [email, setEmail] = useState('');
   const [pass, setPass]   = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.includes('@')) { setError('Введите корректный email'); return; }
     if (pass.length < 6)       { setError('Пароль минимум 6 символов'); return; }
     if (isReg && !name.trim()) { setError('Введите имя'); return; }
-    onLogin(isReg ? name.trim() : email.split('@')[0], email);
+    setLoading(true);
+    try {
+      const res = await fetch('https://functions.poehali.dev/bb04e7bd-cb98-4489-ae05-d436a576ebeb', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: isReg ? 'register' : 'login', name: name.trim(), email: email.trim().toLowerCase(), password: pass }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.error ?? 'Ошибка'); return; }
+      onLogin({ id: data.id, name: data.name, email: data.email });
+    } catch { setError('Ошибка сети'); } finally { setLoading(false); }
   };
 
   return (
@@ -532,9 +549,9 @@ function AuthModal({ onClose, onLogin }: { onClose: () => void; onLogin: (name: 
             <input type="password" className="field-input" placeholder="••••••••" value={pass} onChange={e => { setPass(e.target.value); setError(''); }} />
           </div>
           {error && <div className="text-xs text-red-400 px-1">{error}</div>}
-          <button type="submit" className="w-full py-3 rounded-xl text-sm font-semibold text-white mt-1 transition-all hover:brightness-110"
+          <button type="submit" disabled={loading} className="w-full py-3 rounded-xl text-sm font-semibold text-white mt-1 transition-all hover:brightness-110 disabled:opacity-60"
             style={{ background: 'var(--blue)' }}>
-            {isReg ? 'Создать аккаунт' : 'Войти'}
+            {loading ? 'Загрузка...' : isReg ? 'Создать аккаунт' : 'Войти'}
           </button>
         </form>
 
@@ -652,6 +669,36 @@ function AutoDropdown({ autoId, setAutoId, autoItems, extraItems, extras, toggle
   );
 }
 
+interface RemoteKp {
+  id: number;
+  rnk: string;
+  gate_type: string;
+  gate_w: number;
+  gate_h: number;
+  fill_label: string;
+  auto_label: string;
+  total: number;
+  gate_area: number;
+  wicket_area: number;
+  has_wicket: boolean;
+  extras: string[];
+  payload: KpData | null;
+  created_at: string;
+  user_id: number | null;
+  user_name: string | null;
+  user_email: string | null;
+}
+
+interface RemoteUser {
+  id: number;
+  name: string;
+  email: string;
+  created_at: string;
+  kp_count: number;
+  last_kp_at: string | null;
+  total_sum: number;
+}
+
 // ─── MAIN ─────────────────────────────────────────────────────────────────────
 export default function Index() {
   // Form state
@@ -674,18 +721,39 @@ export default function Index() {
   const [installWicket, setInstallWicket] = useState(false);
   const [markup, setMarkup]       = useState(0);
   const [isOpen, setIsOpen]       = useState(false);
-  const [activeTab, setActiveTab] = useState<'calc' | 'history' | 'admin'>('calc');
+  const [activeTab, setActiveTab] = useState<'calc' | 'history' | 'users' | 'admin'>('calc');
 
   // Auth
-  const [user, setUser]       = useState<{ name: string; email: string } | null>(null);
+  const [user, setUser]       = useState<{ id: number; name: string; email: string } | null>(() => {
+    try { const s = localStorage.getItem('mkc_user'); return s ? JSON.parse(s) : null; } catch { return null; }
+  });
   const [showAuth, setShowAuth] = useState(false);
 
   // Modals
   const [showKp, setShowKp]   = useState(false);
   const [kpData, setKpData]   = useState<KpData | null>(null);
 
-  // History
+  // History — локальная + серверная
   const [history, setHistory] = useState<KpData[]>([]);
+  const [remoteHistory, setRemoteHistory] = useState<RemoteKp[]>([]);
+  const [remoteUsers, setRemoteUsers]     = useState<RemoteUser[]>([]);
+
+  const fetchRemote = useCallback(async () => {
+    try {
+      const [kpRes, usersRes] = await Promise.all([
+        fetch(API.kp),
+        fetch(API.users),
+      ]);
+      if (kpRes.ok)    setRemoteHistory(await kpRes.json());
+      if (usersRes.ok) setRemoteUsers(await usersRes.json());
+    } catch { /* ignore */ }
+  }, []);
+
+  useEffect(() => {
+    fetchRemote();
+    const timer = setInterval(fetchRemote, 15000);
+    return () => clearInterval(timer);
+  }, [fetchRemote]);
 
   // ── Единый источник истины для настроек (с localStorage) ───────────────────
   const LS_KEY = 'mkc_settings_v1';
@@ -875,6 +943,12 @@ export default function Index() {
     setKpData(newKp);
     setHistory(prev => [newKp, ...prev]);
     setShowKp(true);
+    // Сохраняем в БД асинхронно
+    fetch(API.kp, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: user?.id ?? null, kp: newKp }),
+    }).then(() => fetchRemote()).catch(() => {});
   };
 
   // Сохранить = открыть КП + сразу печать
@@ -906,7 +980,7 @@ export default function Index() {
     <div className="min-h-screen" style={{ background: 'var(--surface-1)', fontFamily: "'Golos Text', sans-serif" }}>
 
       {/* Modals */}
-      {showAuth && <AuthModal onClose={() => setShowAuth(false)} onLogin={(name, email) => { setUser({ name, email }); setShowAuth(false); }} />}
+      {showAuth && <AuthModal onClose={() => setShowAuth(false)} onLogin={(u) => { setUser(u); localStorage.setItem('mkc_user', JSON.stringify(u)); setShowAuth(false); fetchRemote(); }} />}
       {showKp && kpData && <KpModal data={kpData} onClose={() => setShowKp(false)} />}
 
       {/* Header */}
@@ -926,10 +1000,11 @@ export default function Index() {
             {[
               { id: 'calc',    label: 'Калькулятор', icon: 'Calculator' },
               { id: 'history', label: 'История',     icon: 'History' },
+              { id: 'users',   label: 'Пользователи', icon: 'Users' },
               { id: 'admin',   label: 'Цены',        icon: 'Settings2' },
             ].map(tab => (
               <button key={tab.id}
-                onClick={() => setActiveTab(tab.id as 'calc' | 'history' | 'admin')}
+                onClick={() => setActiveTab(tab.id as 'calc' | 'history' | 'users' | 'admin')}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all"
                 style={activeTab === tab.id ? { background: 'rgba(10,132,255,0.15)', color: 'var(--blue)' } : { color: '#6B7280' }}>
                 <Icon name={tab.icon} size={13} />
@@ -943,7 +1018,7 @@ export default function Index() {
               <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white"
                 style={{ background: 'var(--blue)' }}>{user.name[0].toUpperCase()}</div>
               <span className="hidden sm:inline text-xs" style={{ color: 'var(--steel)' }}>{user.name}</span>
-              <button onClick={() => setUser(null)} className="p-1 rounded" style={{ color: 'var(--steel)' }}>
+              <button onClick={() => { setUser(null); localStorage.removeItem('mkc_user'); }} className="p-1 rounded" style={{ color: 'var(--steel)' }}>
                 <Icon name="LogOut" size={13} />
               </button>
             </div>
@@ -1239,20 +1314,20 @@ export default function Index() {
               </div>
               <div>
                 <h2 className="text-lg font-bold text-white">История расчётов</h2>
-                <p className="text-xs" style={{ color: 'var(--steel)' }}>{history.length} сохранённых КП</p>
+                <p className="text-xs" style={{ color: 'var(--steel)' }}>
+                  {remoteHistory.length > 0 ? `${remoteHistory.length} КП от всех пользователей` : 'Загрузка...'}
+                </p>
               </div>
             </div>
-            {!user && (
-              <button onClick={() => setShowAuth(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
-                style={{ background: 'var(--blue)', color: 'white' }}>
-                <Icon name="LogIn" size={13} />
-                Войти
-              </button>
-            )}
+            <button onClick={fetchRemote}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+              style={{ border: '1px solid var(--border-subtle)', color: 'var(--steel)', background: 'transparent' }}>
+              <Icon name="RefreshCw" size={12} />
+              Обновить
+            </button>
           </div>
 
-          {history.length === 0 ? (
+          {remoteHistory.length === 0 ? (
             <div className="glass-card p-12 text-center">
               <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
                 style={{ background: 'var(--surface-3)', border: '1px solid var(--border-subtle)' }}>
@@ -1260,7 +1335,7 @@ export default function Index() {
               </div>
               <p className="text-sm font-medium text-white mb-1">Расчётов пока нет</p>
               <p className="text-xs" style={{ color: 'var(--steel)' }}>
-                Нажмите «Создать КП» на вкладке калькулятора — расчёт автоматически появится здесь
+                Нажмите «Создать КП» на вкладке калькулятора — расчёт появится здесь у всех
               </p>
               <button onClick={() => setActiveTab('calc')}
                 className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white transition-all hover:brightness-110"
@@ -1271,24 +1346,36 @@ export default function Index() {
             </div>
           ) : (
             <div className="space-y-3">
-              {history.map((kp, i) => (
-                <div key={kp.rnk} className="glass-card p-4 animate-fade-in"
-                  style={{ animationDelay: `${i * 0.04}s` }}>
+              {remoteHistory.map((kp, i) => (
+                <div key={kp.id} className="glass-card p-4 animate-fade-in"
+                  style={{ animationDelay: `${i * 0.03}s` }}>
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
+                      {/* Пользователь */}
                       <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+                            style={{ background: kp.user_name ? 'var(--blue)' : '#374151', fontSize: 9 }}>
+                            {kp.user_name ? kp.user_name[0].toUpperCase() : '?'}
+                          </div>
+                          <span className="text-xs font-medium" style={{ color: kp.user_name ? 'var(--blue)' : 'var(--steel)' }}>
+                            {kp.user_name ?? 'Аноним'}
+                          </span>
+                        </div>
                         <span className="font-mono text-xs font-bold px-2 py-0.5 rounded"
                           style={{ background: 'rgba(10,132,255,0.15)', color: 'var(--blue)', border: '1px solid rgba(10,132,255,0.25)' }}>
                           РНК {kp.rnk}
                         </span>
-                        <span className="text-xs" style={{ color: 'var(--steel)' }}>{kp.savedAt}</span>
+                        <span className="text-xs" style={{ color: 'var(--steel)' }}>
+                          {new Date(kp.created_at).toLocaleString('ru-RU')}
+                        </span>
                       </div>
                       <div className="flex flex-wrap gap-2 mb-3">
                         {[
-                          { icon: 'DoorOpen', val: kp.gateType === 'sliding' ? 'Откатные' : kp.gateType === 'swing' ? 'Распашные' : 'Распашные+кал.' },
-                          { icon: 'Ruler', val: `${(kp.gateW/1000).toFixed(1)}×${(kp.gateH/1000).toFixed(1)} м` },
-                          { icon: 'Grid3x3', val: kp.fillLabel ?? kp.fillType },
-                          ...(kp.autoLabel !== 'Без автоматики' ? [{ icon: 'Cpu', val: kp.autoLabel.split('—')[0].trim() }] : []),
+                          { icon: 'DoorOpen', val: kp.gate_type === 'sliding' ? 'Откатные' : kp.gate_type === 'swing' ? 'Распашные' : 'Распашные+кал.' },
+                          { icon: 'Ruler', val: `${(kp.gate_w/1000).toFixed(1)}×${(kp.gate_h/1000).toFixed(1)} м` },
+                          { icon: 'Grid3x3', val: kp.fill_label ?? kp.gate_type },
+                          ...(kp.auto_label && kp.auto_label !== 'Без автоматики' ? [{ icon: 'Cpu', val: kp.auto_label.split('—')[0].trim() }] : []),
                         ].map((tag, j) => (
                           <span key={j} className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-md"
                             style={{ background: 'var(--surface-3)', color: 'var(--steel)', border: '1px solid var(--border-subtle)' }}>
@@ -1302,31 +1389,99 @@ export default function Index() {
                       </div>
                     </div>
                     <div className="flex flex-col gap-2 flex-shrink-0">
-                      <button
-                        onClick={() => loadCalc(kp)}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all hover:brightness-110"
-                        style={{ background: 'var(--blue)', color: 'white' }}>
-                        <Icon name="RotateCcw" size={12} />
-                        Загрузить
-                      </button>
-                      <button
-                        onClick={() => { setKpData(kp); setShowKp(true); }}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all"
-                        style={{ border: '1px solid var(--border-subtle)', color: 'var(--steel)', background: 'transparent' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.05)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                        <Icon name="FileText" size={12} />
-                        КП / PDF
-                      </button>
-                      <button
-                        onClick={() => setHistory(prev => prev.filter(h => h.rnk !== kp.rnk))}
-                        className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all"
-                        style={{ border: '1px solid rgba(239,68,68,0.2)', color: '#F87171', background: 'transparent' }}
-                        onMouseEnter={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.06)')}
-                        onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
-                        <Icon name="Trash2" size={12} />
-                        Удалить
-                      </button>
+                      {kp.payload && (
+                        <>
+                          <button
+                            onClick={() => { if (kp.payload) loadCalc(kp.payload); }}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all hover:brightness-110"
+                            style={{ background: 'var(--blue)', color: 'white' }}>
+                            <Icon name="RotateCcw" size={12} />
+                            Загрузить
+                          </button>
+                          <button
+                            onClick={() => { if (kp.payload) { setKpData(kp.payload); setShowKp(true); } }}
+                            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all"
+                            style={{ border: '1px solid var(--border-subtle)', color: 'var(--steel)', background: 'transparent' }}>
+                            <Icon name="FileText" size={12} />
+                            КП / PDF
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── USERS ── */}
+      {activeTab === 'users' && (
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-8 animate-fade-in">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.3)' }}>
+                <Icon name="Users" size={15} style={{ color: 'var(--green)' }} />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white">Пользователи</h2>
+                <p className="text-xs" style={{ color: 'var(--steel)' }}>{remoteUsers.length} зарегистрировано</p>
+              </div>
+            </div>
+            <button onClick={fetchRemote}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+              style={{ border: '1px solid var(--border-subtle)', color: 'var(--steel)', background: 'transparent' }}>
+              <Icon name="RefreshCw" size={12} />
+              Обновить
+            </button>
+          </div>
+
+          {remoteUsers.length === 0 ? (
+            <div className="glass-card p-12 text-center">
+              <div className="w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                style={{ background: 'var(--surface-3)', border: '1px solid var(--border-subtle)' }}>
+                <Icon name="UserX" size={24} style={{ color: 'var(--steel)' }} />
+              </div>
+              <p className="text-sm font-medium text-white mb-1">Нет зарегистрированных пользователей</p>
+              <p className="text-xs" style={{ color: 'var(--steel)' }}>Они появятся после первой регистрации</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {remoteUsers.map((u, i) => (
+                <div key={u.id} className="glass-card p-4 animate-fade-in"
+                  style={{ animationDelay: `${i * 0.04}s` }}>
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold text-white flex-shrink-0"
+                      style={{ background: 'var(--blue)' }}>
+                      {u.name[0].toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap mb-0.5">
+                        <span className="text-sm font-bold text-white">{u.name}</span>
+                        <span className="text-xs" style={{ color: 'var(--steel)' }}>{u.email}</span>
+                      </div>
+                      <div className="flex gap-3 flex-wrap">
+                        <span className="text-xs" style={{ color: 'var(--steel)' }}>
+                          Регистрация: {new Date(u.created_at).toLocaleDateString('ru-RU')}
+                        </span>
+                        {u.last_kp_at && (
+                          <span className="text-xs" style={{ color: 'var(--steel)' }}>
+                            Последний КП: {new Date(u.last_kp_at).toLocaleDateString('ru-RU')}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      <span className="text-sm font-bold font-mono" style={{ color: 'var(--green)' }}>
+                        {u.kp_count} КП
+                      </span>
+                      {u.total_sum > 0 && (
+                        <span className="text-xs font-mono" style={{ color: 'var(--steel)' }}>
+                          {fmt(u.total_sum)}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>

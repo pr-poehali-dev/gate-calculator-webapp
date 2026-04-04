@@ -1,0 +1,11 @@
+{
+  "tests": [
+    {
+      "name": "Login with wrong creds",
+      "method": "POST",
+      "path": "/",
+      "body": {"action": "login", "email": "nobody@example.com", "password": "wrongpass"},
+      "expectedStatus": 401
+    }
+  ]
+}

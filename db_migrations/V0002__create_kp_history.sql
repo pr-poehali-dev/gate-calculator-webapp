@@ -1,0 +1,20 @@
+CREATE TABLE kp_history (
+  id          SERIAL PRIMARY KEY,
+  user_id     INTEGER REFERENCES users(id),
+  rnk         TEXT NOT NULL,
+  gate_type   TEXT NOT NULL,
+  gate_w      INTEGER NOT NULL,
+  gate_h      INTEGER NOT NULL,
+  fill_type   TEXT NOT NULL,
+  has_wicket  BOOLEAN DEFAULT FALSE,
+  wicket_w    INTEGER,
+  wicket_h    INTEGER,
+  auto_label  TEXT,
+  fill_label  TEXT,
+  total       NUMERIC(12,2) NOT NULL,
+  gate_area   NUMERIC(8,4),
+  wicket_area NUMERIC(8,4),
+  extras      TEXT[],
+  payload     JSONB,
+  created_at  TIMESTAMPTZ DEFAULT NOW()
+)

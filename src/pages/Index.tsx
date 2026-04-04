@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Icon from '@/components/ui/icon';
-import GateSketch, { GateType, FillType, FillDir } from '@/components/GateSketch';
+import GateSketch, { GateType, FillType, FillDir, OpenDir } from '@/components/GateSketch';
 
 // ─── Default prices (editable) ───────────────────────────────────────────────
 const DEFAULT_GATE_PRICES: Record<GateType, number> = { sliding: 35000, swing: 30000, swing_wicket: 40000 };
@@ -634,8 +634,10 @@ export default function Index() {
   const [wicketW, setWicketW]     = useState(900);
   const [wicketH, setWicketH]     = useState(2000);
   const [autoId, setAutoId]       = useState('none');
-  const [fillType, setFillType]   = useState<FillType>('proflist');
-  const [fillDir, setFillDir]     = useState<FillDir>('horizontal');
+  const [fillType, setFillType]       = useState<FillType>('proflist');
+  const [fillDir, setFillDir]         = useState<FillDir>('horizontal');
+  const [openDir, setOpenDir]         = useState<OpenDir>('left');
+  const [wicketOpenDir, setWicketOpenDir] = useState<OpenDir>('left');
   const [extras, setExtras]       = useState<Set<string>>(new Set());
   const [installAuto,   setInstallAuto]   = useState(false);
   const [installFill,   setInstallFill]   = useState(false);
@@ -1127,8 +1129,15 @@ export default function Index() {
                   </button>
                 </div>
                 <div className="p-1">
-                  <GateSketch width={gateW} height={gateH} gateType={gateType} fillType={fillType} fillDir={fillDir}
-                    hasWicket={hasWicket} wicketWidth={wicketW} wicketHeight={wicketH} isOpen={isOpen} />
+                  <GateSketch
+                    width={gateW} height={gateH}
+                    gateType={gateType} fillType={fillType} fillDir={fillDir}
+                    openDir={openDir} wicketOpenDir={wicketOpenDir}
+                    hasWicket={hasWicket} wicketWidth={wicketW} wicketHeight={wicketH}
+                    isOpen={isOpen}
+                    onOpenDirChange={setOpenDir}
+                    onWicketOpenDirChange={setWicketOpenDir}
+                  />
                 </div>
               </div>
 

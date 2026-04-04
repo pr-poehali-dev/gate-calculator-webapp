@@ -1,8 +1,9 @@
 import React from 'react';
 
-export type GateType = 'sliding' | 'swing' | 'swing_wicket';
-export type FillType = 'proflist' | 'rancho' | 'jalusi' | 'siding' | 'shtaketnik';
-export type FillDir  = 'horizontal' | 'vertical';
+export type GateType    = 'sliding' | 'swing' | 'swing_wicket';
+export type FillType    = 'proflist' | 'rancho' | 'jalusi' | 'siding' | 'shtaketnik';
+export type FillDir     = 'horizontal' | 'vertical';
+export type OpenDir     = 'left' | 'right'; // направление открытия ворот/калитки
 
 interface GateSketchProps {
   width: number;
@@ -10,10 +11,14 @@ interface GateSketchProps {
   gateType: GateType;
   fillType: FillType;
   fillDir: FillDir;
+  openDir: OpenDir;       // направление открытия ворот (распашные) / откат (откатные)
+  wicketOpenDir: OpenDir; // направление открытия калитки
   hasWicket: boolean;
   wicketWidth: number;
   wicketHeight: number;
   isOpen: boolean;
+  onOpenDirChange: (d: OpenDir) => void;
+  onWicketOpenDirChange: (d: OpenDir) => void;
 }
 
 const FILL_COLORS: Record<FillType, { stripe: string; bg: string; label: string }> = {
@@ -97,16 +102,34 @@ function PanelRibs({ x, y, w, h, fillDir }: { x: number; y: number; w: number; h
   );
 }
 
-// Распашная панель ворот
+/**
+ * Распашные ворота — две створки.
+ * openDir='left'  → обе уходят влево (левая — сильнее, правая — меньше)
+ * openDir='right' → обе уходят вправо
+ * По умолчанию (классика): левая влево, правая вправо.
+ * Для односторонних: обе в одну сторону.
+ */
 function SwingPanel({
-  x, y, w, h, fillType, fillDir, patId, isOpen, side,
+  x, y, w, h, fillType, fillDir, patId, isOpen, side, openDir,
 }: {
   x: number; y: number; w: number; h: number;
-  fillType: FillType; fillDir: FillDir; patId: string; isOpen: boolean; side: 'left' | 'right';
+  fillType: FillType; fillDir: FillDir; patId: string;
+  isOpen: boolean; side: 'left' | 'right'; openDir: OpenDir;
 }) {
+  // Pivot всегда на петле: левая створка — левый край, правая — правый край
   const pivotX = side === 'left' ? x : x + w;
   const pivotY = y + h;
-  const angle = isOpen ? (side === 'left' ? -75 : 75) : 0;
+
+  let angle = 0;
+  if (isOpen) {
+    if (openDir === 'left') {
+      // обе уходят влево: левая на -75°, правая тоже влево = -75°
+      angle = -75;
+    } else {
+      // обе уходят вправо: правая на +75°, левая тоже вправо = +75°
+      angle = 75;
+    }
+  }
 
   return (
     <g style={{
@@ -121,17 +144,23 @@ function SwingPanel({
   );
 }
 
-// Калитка с анимацией — открывается вправо
+/**
+ * Калитка с анимацией.
+ * openDir='left'  → pivot на левом краю, открывается влево (-80°)
+ * openDir='right' → pivot на правом краю, открывается вправо (+80°)
+ */
 function WicketPanel({
-  x, y, w, h, fillType, fillDir, patId, isOpen,
+  x, y, w, h, fillType, fillDir, patId, isOpen, openDir,
 }: {
   x: number; y: number; w: number; h: number;
-  fillType: FillType; fillDir: FillDir; patId: string; isOpen: boolean;
+  fillType: FillType; fillDir: FillDir; patId: string;
+  isOpen: boolean; openDir: OpenDir;
 }) {
-  // Pivot — правый нижний угол (петли справа, открывается влево наружу)
-  const pivotX = x + w;
+  const pivotX = openDir === 'left' ? x : x + w;
   const pivotY = y + h;
-  const angle = isOpen ? -80 : 0;
+  const angle  = isOpen ? (openDir === 'left' ? -80 : 80) : 0;
+  // ручка с противоположной стороны от петли
+  const handleX = openDir === 'left' ? x + w * 0.8 : x + w * 0.2;
 
   return (
     <g style={{
@@ -141,10 +170,8 @@ function WicketPanel({
     }}>
       <rect x={x} y={y} width={w} height={h} fill={`url(#${patId})`} rx="1" />
       <rect x={x} y={y} width={w} height={h} fill="none" stroke="#22C55E" strokeWidth="1.5" rx="1" />
-      {/* ребро жёсткости */}
       <line x1={x + 2} y1={y + h * 0.5} x2={x + w - 2} y2={y + h * 0.5} stroke="#22C55E" strokeWidth="1" opacity="0.5" />
-      {/* ручка */}
-      <circle cx={x + w * 0.25} cy={y + h * 0.5} r={3} fill="#22C55E" />
+      <circle cx={handleX} cy={y + h * 0.5} r={3} fill="#22C55E" />
     </g>
   );
 }
@@ -175,32 +202,55 @@ function DimArrow({ x1, y1, x2, y2, label, color = '#0A84FF' }: {
   );
 }
 
+// Мини-кнопка переключения направления прямо на SVG
+function DirToggle({
+  cx, cy, dir, label, active, onClick,
+}: {
+  cx: number; cy: number; dir: OpenDir; label: string; active: boolean; onClick: () => void;
+}) {
+  const W = 44; const H = 18;
+  return (
+    <g onClick={onClick} style={{ cursor: 'pointer' }}>
+      <rect x={cx - W / 2} y={cy - H / 2} width={W} height={H} rx="9"
+        fill={active ? 'rgba(10,132,255,0.25)' : 'rgba(255,255,255,0.06)'}
+        stroke={active ? '#0A84FF' : 'rgba(255,255,255,0.12)'}
+        strokeWidth="1"
+      />
+      {/* стрелка */}
+      {dir === 'left'
+        ? <path d={`M${cx - 6},${cy} L${cx + 2},${cy - 4} L${cx + 2},${cy + 4} Z`} fill={active ? '#0A84FF' : '#4B5563'} />
+        : <path d={`M${cx + 6},${cy} L${cx - 2},${cy - 4} L${cx - 2},${cy + 4} Z`} fill={active ? '#0A84FF' : '#4B5563'} />
+      }
+      <text x={cx + (dir === 'left' ? 8 : -8)} y={cy + 3.5}
+        fill={active ? '#0A84FF' : '#6B7280'}
+        fontSize="7" fontFamily="IBM Plex Mono, monospace" textAnchor="middle">
+        {label}
+      </text>
+    </g>
+  );
+}
+
 const GateSketch: React.FC<GateSketchProps> = ({
-  width, height, gateType, fillType, fillDir, hasWicket,
-  wicketWidth, wicketHeight, isOpen
+  width, height, gateType, fillType, fillDir,
+  openDir, wicketOpenDir,
+  hasWicket, wicketWidth, wicketHeight, isOpen,
+  onOpenDirChange, onWicketOpenDirChange,
 }) => {
-  // Если есть отдельная калитка (не встроенная) — расширяем viewBox вправо
   const hasExtraWicket = hasWicket && gateType !== 'swing_wicket';
 
-  const SVG_W_BASE = 380;
   const SVG_H = 280;
   const MARGIN = { top: 36, left: 44, right: 28, bottom: 44 };
-
   const postW = 12;
   const railH = 20;
-  const GAP   = 10; // зазор между воротами и калиткой
+  const GAP   = 10;
 
-  // Пропорция калитки относительно ворот
   const wRatio  = Math.min(wicketWidth  / width,  0.32);
   const whRatio = Math.min(wicketHeight / height, 1.0);
 
-  // Высота зоны рисования
   const gH = SVG_H - MARGIN.top - MARGIN.bottom;
   const gY = MARGIN.top;
 
-  // Ширина ворот + опциональная калитка
-  // Хотим разместить ворота и калитку в доступной ширине
-  const availW = SVG_W_BASE - MARGIN.left - MARGIN.right;
+  const availW  = 380 - MARGIN.left - MARGIN.right;
   const gW = hasExtraWicket
     ? Math.round(availW / (1 + wRatio + (postW * 3 + GAP) / availW))
     : availW;
@@ -209,19 +259,19 @@ const GateSketch: React.FC<GateSketchProps> = ({
   const wkW = Math.round(gW * wRatio);
   const wkH = Math.round(gH * whRatio);
 
-  // Позиция столба и калитки справа от ворот
-  const rightPostX  = gX + gW;
-  const wkPostX     = rightPostX + postW + GAP;
-  const wkX         = wkPostX + postW;
-  const wkFarPostX  = wkX + wkW;
-  const wkY         = gY + gH - wkH;
+  const rightPostX = gX + gW;
+  const wkPostX    = rightPostX + postW + GAP;
+  const wkX        = wkPostX + postW;
+  const wkFarPostX = wkX + wkW;
+  const wkY        = gY + gH - wkH;
 
-  // Общая ширина SVG
-  const SVG_W = hasExtraWicket
-    ? wkFarPostX + postW + MARGIN.right
-    : SVG_W_BASE;
-
+  const SVG_W = hasExtraWicket ? wkFarPostX + postW + MARGIN.right : 380;
   const groundY = gY + gH;
+
+  // Центр ворот и калитки для размещения кнопок
+  const gateCX = gX + gW / 2;
+  const wkCX   = wkX + wkW / 2;
+  const btnY   = gY + gH / 2; // по центру высоты ворот
 
   return (
     <svg
@@ -241,136 +291,148 @@ const GateSketch: React.FC<GateSketchProps> = ({
         </linearGradient>
       </defs>
 
-      {/* Фон */}
       <rect width={SVG_W} height={SVG_H} fill="url(#skyGrad)" rx="10" />
       <rect x={0} y={groundY} width={SVG_W} height={SVG_H - groundY} fill="#161F2E" />
       <line x1={0} y1={groundY} x2={SVG_W} y2={groundY} stroke="#2A3A4E" strokeWidth="1.5" />
 
       {/* ── ОТКАТНЫЕ ── */}
-      {gateType === 'sliding' && (
-        <g filter="url(#shadow)">
-          {/* Рельс */}
-          <rect x={gX - 30} y={groundY - railH} width={gW + 60} height={railH}
-            fill="#1A2535" stroke="#2A3A50" strokeWidth="1" />
-          <line x1={gX - 30} y1={groundY - railH / 2} x2={gX + gW + 30} y2={groundY - railH / 2}
-            stroke="#0A84FF" strokeWidth="1" strokeDasharray="6 4" opacity="0.5" />
-          {/* Левый столб */}
-          <rect x={gX - postW} y={gY - 10} width={postW} height={gH + 10 - railH}
-            fill="#1E2D40" stroke="#2A3A50" strokeWidth="1.5" />
-          {/* Полотно */}
-          <g style={{
-            transform: isOpen ? `translateX(${gW * 0.58}px)` : 'translateX(0)',
-            transition: 'transform 0.55s cubic-bezier(0.4,0,0.2,1)',
-          }}>
-            <rect x={gX} y={gY} width={gW} height={gH - railH} fill="url(#fill-main)" rx="1" />
-            <rect x={gX} y={gY} width={gW} height={gH - railH} fill="none" stroke="#3A4E64" strokeWidth="2" rx="1" />
-            <PanelRibs x={gX} y={gY} w={gW} h={gH - railH} fillDir={fillDir} />
-          </g>
-          {/* Правый столб */}
-          <rect x={gX + gW} y={gY - 10} width={postW} height={gH + 10 - railH}
-            fill="#1E2D40" stroke="#2A3A50" strokeWidth="1.5" />
-          {/* Ролики */}
-          {[gX + 30, gX + gW - 30].map((cx, i) => (
-            <g key={i}>
-              <circle cx={cx} cy={groundY - railH / 2} r={7} fill="#243040" stroke="#0A84FF" strokeWidth="1.5" />
-              <circle cx={cx} cy={groundY - railH / 2} r={2.5} fill="#0A84FF" />
+      {gateType === 'sliding' && (() => {
+        // Откатные: openDir = направление откатывания (в какую сторону уходит полотно)
+        const shift = openDir === 'right' ? gW * 0.58 : -gW * 0.58;
+        return (
+          <g filter="url(#shadow)">
+            <rect x={gX - 30} y={groundY - railH} width={gW + 60} height={railH}
+              fill="#1A2535" stroke="#2A3A50" strokeWidth="1" />
+            <line x1={gX - 30} y1={groundY - railH / 2} x2={gX + gW + 30} y2={groundY - railH / 2}
+              stroke="#0A84FF" strokeWidth="1" strokeDasharray="6 4" opacity="0.5" />
+            <rect x={gX - postW} y={gY - 10} width={postW} height={gH + 10 - railH}
+              fill="#1E2D40" stroke="#2A3A50" strokeWidth="1.5" />
+            <g style={{
+              transform: isOpen ? `translateX(${shift}px)` : 'translateX(0)',
+              transition: 'transform 0.55s cubic-bezier(0.4,0,0.2,1)',
+            }}>
+              <rect x={gX} y={gY} width={gW} height={gH - railH} fill="url(#fill-main)" rx="1" />
+              <rect x={gX} y={gY} width={gW} height={gH - railH} fill="none" stroke="#3A4E64" strokeWidth="2" rx="1" />
+              <PanelRibs x={gX} y={gY} w={gW} h={gH - railH} fillDir={fillDir} />
             </g>
-          ))}
-        </g>
-      )}
+            <rect x={gX + gW} y={gY - 10} width={postW} height={gH + 10 - railH}
+              fill="#1E2D40" stroke="#2A3A50" strokeWidth="1.5" />
+            {[gX + 30, gX + gW - 30].map((cx, i) => (
+              <g key={i}>
+                <circle cx={cx} cy={groundY - railH / 2} r={7} fill="#243040" stroke="#0A84FF" strokeWidth="1.5" />
+                <circle cx={cx} cy={groundY - railH / 2} r={2.5} fill="#0A84FF" />
+              </g>
+            ))}
+            {/* Переключатель направления откатывания */}
+            <text x={gateCX} y={btnY - 20} fill="#6B7280" fontSize="7.5"
+              fontFamily="IBM Plex Mono, monospace" textAnchor="middle">ОТКАТ</text>
+            <DirToggle cx={gateCX - 26} cy={btnY} dir="left" label="←" active={openDir === 'left'}
+              onClick={() => onOpenDirChange('left')} />
+            <DirToggle cx={gateCX + 26} cy={btnY} dir="right" label="→" active={openDir === 'right'}
+              onClick={() => onOpenDirChange('right')} />
+          </g>
+        );
+      })()}
 
-      {/* ── РАСПАШНЫЕ (с или без встроенной калитки) ── */}
+      {/* ── РАСПАШНЫЕ ── */}
       {(gateType === 'swing' || gateType === 'swing_wicket') && (
         <g>
-          {/* Столбы */}
           <rect x={gX - postW} y={gY - 10} width={postW} height={gH + 10} fill="#1E2D40" stroke="#2A3A50" strokeWidth="1.5" />
           <rect x={gX + gW}    y={gY - 10} width={postW} height={gH + 10} fill="#1E2D40" stroke="#2A3A50" strokeWidth="1.5" />
-          {/* Петли */}
           {[0.2, 0.5, 0.8].map((f, i) => (
             <g key={i}>
-              <rect x={gX - postW - 1} y={gY + gH * f - 5} width={postW + 7} height={10} fill="#0A84FF" rx="2" opacity="0.85" />
-              <rect x={gX + gW - 6}    y={gY + gH * f - 5} width={postW + 7} height={10} fill="#0A84FF" rx="2" opacity="0.85" />
+              {/* петли слева или справа в зависимости от направления */}
+              {openDir === 'left' ? (
+                <rect x={gX - postW - 1} y={gY + gH * f - 5} width={postW + 7} height={10} fill="#0A84FF" rx="2" opacity="0.85" />
+              ) : (
+                <rect x={gX + gW - 6} y={gY + gH * f - 5} width={postW + 7} height={10} fill="#0A84FF" rx="2" opacity="0.85" />
+              )}
             </g>
           ))}
 
-          {/* Левая и правая створки */}
           <SwingPanel x={gX} y={gY} w={gW / 2 - 1} h={gH}
-            fillType={fillType} fillDir={fillDir} patId="fill-main" isOpen={isOpen} side="left" />
+            fillType={fillType} fillDir={fillDir} patId="fill-main"
+            isOpen={isOpen} side="left" openDir={openDir} />
           <SwingPanel x={gX + gW / 2 + 1} y={gY} w={gW / 2 - 1} h={gH}
-            fillType={fillType} fillDir={fillDir} patId="fill-main" isOpen={isOpen} side="right" />
+            fillType={fillType} fillDir={fillDir} patId="fill-main"
+            isOpen={isOpen} side="right" openDir={openDir} />
 
-          {/* Встроенная калитка (swing_wicket) — анимируется как панель в правой створке */}
+          {/* Встроенная калитка */}
           {gateType === 'swing_wicket' && (
             <>
-              {/* Лейбл */}
-              <text
-                x={gX + gW * 0.75}
-                y={gY - 4}
+              <text x={gX + gW * 0.75} y={gY - 4}
                 fill="#22C55E" fontSize="7.5" fontFamily="IBM Plex Mono, monospace" textAnchor="middle"
-                style={{
-                  opacity: isOpen ? 0 : 1,
-                  transition: 'opacity 0.3s',
-                }}
-              >
+                style={{ opacity: isOpen ? 0 : 1, transition: 'opacity 0.3s' }}>
                 КАЛИТКА
               </text>
-              {/* Панель калитки поверх правой створки */}
               <WicketPanel
-                x={gX + gW / 2 + 2}
-                y={gY + gH - wkH}
-                w={wkW}
-                h={wkH}
-                fillType={fillType}
-                fillDir={fillDir}
-                patId="fill-wk"
-                isOpen={isOpen}
+                x={gX + gW / 2 + 2} y={gY + gH - wkH}
+                w={wkW} h={wkH}
+                fillType={fillType} fillDir={fillDir} patId="fill-wk"
+                isOpen={isOpen} openDir={wicketOpenDir}
               />
             </>
           )}
 
-          {/* Засов посередине (закрыто) */}
+          {/* Засов */}
           {!isOpen && (
             <rect x={gX + gW / 2 - 2} y={gY + gH * 0.35}
               width={4} height={gH * 0.3}
               fill="#243040" stroke="#0A84FF" strokeWidth="1" rx="2" />
           )}
+
+          {/* Переключатель направления ворот */}
+          <text x={gateCX} y={btnY - 20} fill="#6B7280" fontSize="7.5"
+            fontFamily="IBM Plex Mono, monospace" textAnchor="middle">ОТКРЫТИЕ</text>
+          <DirToggle cx={gateCX - 26} cy={btnY} dir="left" label="←" active={openDir === 'left'}
+            onClick={() => onOpenDirChange('left')} />
+          <DirToggle cx={gateCX + 26} cy={btnY} dir="right" label="→" active={openDir === 'right'}
+            onClick={() => onOpenDirChange('right')} />
         </g>
       )}
 
-      {/* ── ОТДЕЛЬНАЯ КАЛИТКА (откатные или обычные распашные + калитка рядом) ── */}
+      {/* ── ОТДЕЛЬНАЯ КАЛИТКА ── */}
       {hasExtraWicket && (
         <g filter="url(#shadow)">
-          {/* Левый столб калитки (общий с воротами или отдельный) */}
           <rect x={wkPostX} y={gY + gH - wkH - 10} width={postW} height={wkH + 10}
             fill="#1E2D40" stroke="#2A3A50" strokeWidth="1.5" />
-          {/* Правый столб калитки */}
           <rect x={wkFarPostX} y={gY + gH - wkH - 10} width={postW} height={wkH + 10}
             fill="#1E2D40" stroke="#2A3A50" strokeWidth="1.5" />
-          {/* Петли на левом столбе */}
+          {/* петли: у левого или правого столба */}
           {[0.3, 0.7].map((f, i) => (
             <rect key={i}
-              x={wkPostX + postW - 2} y={wkY + wkH * f - 4} width={postW - 2} height={8}
+              x={wicketOpenDir === 'left' ? wkPostX + postW - 2 : wkFarPostX - postW + 2}
+              y={wkY + wkH * f - 4} width={postW - 2} height={8}
               fill="#22C55E" rx="2" opacity="0.85" />
           ))}
-          {/* Полотно калитки с анимацией */}
           <WicketPanel
-            x={wkX}
-            y={wkY}
-            w={wkW}
-            h={wkH}
-            fillType={fillType}
-            fillDir={fillDir}
-            patId="fill-wk"
-            isOpen={isOpen}
+            x={wkX} y={wkY} w={wkW} h={wkH}
+            fillType={fillType} fillDir={fillDir} patId="fill-wk"
+            isOpen={isOpen} openDir={wicketOpenDir}
           />
-          {/* Лейбл */}
-          <text
-            x={wkX + wkW / 2}
-            y={wkY - 8}
-            fill="#22C55E" fontSize="8" fontFamily="IBM Plex Mono, monospace" textAnchor="middle"
-          >
+          <text x={wkCX} y={wkY - 8}
+            fill="#22C55E" fontSize="8" fontFamily="IBM Plex Mono, monospace" textAnchor="middle">
             КАЛИТКА
           </text>
+          {/* Переключатель направления калитки */}
+          <DirToggle cx={wkCX - 26} cy={wkY + wkH / 2} dir="left" label="←"
+            active={wicketOpenDir === 'left'}
+            onClick={() => onWicketOpenDirChange('left')} />
+          <DirToggle cx={wkCX + 26} cy={wkY + wkH / 2} dir="right" label="→"
+            active={wicketOpenDir === 'right'}
+            onClick={() => onWicketOpenDirChange('right')} />
+        </g>
+      )}
+
+      {/* Встроенная калитка — свои переключатели направления */}
+      {gateType === 'swing_wicket' && hasWicket && (
+        <g>
+          <DirToggle cx={gX + gW * 0.75 - 22} cy={gY + gH - wkH / 2} dir="left" label="←"
+            active={wicketOpenDir === 'left'}
+            onClick={() => onWicketOpenDirChange('left')} />
+          <DirToggle cx={gX + gW * 0.75 + 22} cy={gY + gH - wkH / 2} dir="right" label="→"
+            active={wicketOpenDir === 'right'}
+            onClick={() => onWicketOpenDirChange('right')} />
         </g>
       )}
 

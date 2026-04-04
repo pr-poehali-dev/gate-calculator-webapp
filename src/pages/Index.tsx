@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import ReactDOMServer from 'react-dom/server';
 import Icon from '@/components/ui/icon';
 import GateSketch, { GateType, FillType, FillDir, OpenDir } from '@/components/GateSketch';
 
@@ -247,8 +248,9 @@ function PriceRow({ label, value, onChange, suffix }: {
 interface KpData {
   rnk: string;
   gateType: GateType; gateW: number; gateH: number;
-  fillType: FillType; hasWicket: boolean;
+  fillType: FillType; fillDir: FillDir; hasWicket: boolean;
   wicketW: number; wicketH: number;
+  openDir: OpenDir; wicketOpenDir: OpenDir;
   autoId: string; autoLabel: string; extras: string[];
   installAuto: boolean; installFill: boolean; installGate: boolean;
   installFrame: boolean; installWicket: boolean;
@@ -257,6 +259,7 @@ interface KpData {
   subtotal: number; markup: number; markupAmt: number; total: number;
   gateArea: number; wicketArea: number;
   fillLabel: string;
+  sketchSvg: string;
   savedAt: string;
 }
 
@@ -282,12 +285,26 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
       .total-row td { font-weight: 700; background: #0A84FF; color: white; font-size: 15px; }
       .total-row .money { font-size: 17px; }
       .footer { margin-top: 24px; font-size: 10px; color: #999; border-top: 1px solid #e2e8f0; padding-top: 10px; }
-      @media print { body { padding: 10mm; } }
+      .sketch-wrap { margin-bottom: 18px; }
+      .sketch-label { font-size: 10px; font-weight: 700; color: #4a5568; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
+      .sketch-svg { background: #0E1520; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; max-width: 480px; }
+      .sketch-svg svg { display: block; width: 100%; height: auto; }
+      .sketch-dims { margin-top: 6px; font-size: 11px; color: #718096; }
+      .sketch-dims b { color: #2d3748; }
+      @media print { body { padding: 10mm; } .sketch-svg { max-width: 100%; } }
     </style></head><body>
     <div class="logo">МЕТАЛЛКОНСТРУКТОР</div>
     <div class="subtitle">Коммерческое предложение</div>
     <h2>Расчёт металлических ворот</h2>
     <div class="rnk">РНК: ${data.rnk} &nbsp;|&nbsp; Дата: ${new Date().toLocaleDateString('ru-RU')}</div>
+    <div class="sketch-wrap">
+      <div class="sketch-label">СХЕМА</div>
+      <div class="sketch-svg">${data.sketchSvg}</div>
+      <div class="sketch-dims">
+        Ворота: <b>${(data.gateW/1000).toFixed(2)} м × ${(data.gateH/1000).toFixed(2)} м</b>
+        ${data.hasWicket ? `&nbsp;&nbsp;Калитка: <b>${(data.wicketW/1000).toFixed(2)} м × ${(data.wicketH/1000).toFixed(2)} м</b>` : ''}
+      </div>
+    </div>
     <table>
       <thead><tr><th>Наименование</th><th>Характеристика</th></tr></thead>
       <tbody>
@@ -376,6 +393,17 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
                 <div className="text-sm font-semibold" style={{ color: '#1a202c' }}>{row.val}</div>
               </div>
             ))}
+          </div>
+
+          {/* Схема ворот */}
+          <div className="mb-6">
+            <div className="text-xs font-bold mb-2 tracking-widest" style={{ color: '#4a5568' }}>СХЕМА</div>
+            <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #e2e8f0', background: '#0E1520' }}
+              dangerouslySetInnerHTML={{ __html: data.sketchSvg }} />
+            <div className="flex gap-4 mt-2 text-xs" style={{ color: '#718096' }}>
+              <span>Ворота: <b style={{ color: '#2d3748' }}>{(data.gateW / 1000).toFixed(2)} м × {(data.gateH / 1000).toFixed(2)} м</b></span>
+              {data.hasWicket && <span>Калитка: <b style={{ color: '#2d3748' }}>{(data.wicketW / 1000).toFixed(2)} м × {(data.wicketH / 1000).toFixed(2)} м</b></span>}
+            </div>
           </div>
 
           {/* Таблица — состав (без цен) */}
@@ -821,13 +849,27 @@ export default function Index() {
   const kpLineItems = lineItems.filter(r => !r.accent);
 
   const openKp = () => {
+    const sketchSvg = ReactDOMServer.renderToStaticMarkup(
+      React.createElement(GateSketch, {
+        width: gateW, height: gateH,
+        gateType, fillType, fillDir,
+        openDir, wicketOpenDir,
+        hasWicket, wicketWidth: wicketW, wicketHeight: wicketH,
+        isOpen: false,
+        onOpenDirChange: () => {},
+        onWicketOpenDirChange: () => {},
+      })
+    );
     const newKp: KpData = {
-      rnk: getRnk(), gateType, gateW, gateH, fillType, hasWicket,
-      wicketW, wicketH, autoId, autoLabel: autoOpt.label,
+      rnk: getRnk(), gateType, gateW, gateH,
+      fillType, fillDir, hasWicket,
+      wicketW, wicketH, openDir, wicketOpenDir,
+      autoId, autoLabel: autoOpt.label,
       extras: [...extras].map(id => extraItems.find(o => o.id === id)?.label ?? ''),
       installAuto, installFill, installGate, installFrame, installWicket,
       isNonStd, lineItems: kpLineItems, subtotal, markup, markupAmt, total,
       gateArea, wicketArea, fillLabel: curFillLabel,
+      sketchSvg,
       savedAt: new Date().toLocaleString('ru-RU'),
     };
     setKpData(newKp);

@@ -10,7 +10,7 @@ const API = {
 };
 
 // ─── Default prices (editable) ───────────────────────────────────────────────
-const DEFAULT_GATE_PRICES: Record<GateType, number> = { sliding: 35000, swing: 30000, swing_wicket: 40000 };
+const DEFAULT_GATE_PRICES: Record<GateType, number> = { sliding: 35000, swing: 30000, swing_wicket: 40000, accordion: 50000 };
 const DEFAULT_FILL_PRICES: Record<FillType, number>  = { proflist: 1000, rancho: 3500, jalusi: 4500, siding: 1500, shtaketnik: 1300 };
 const DEFAULT_WICKET_PRICE   = 16000;
 const DEFAULT_INST_AUTO      = 10000;
@@ -24,20 +24,19 @@ const FILL_LABELS: Record<FillType, string> = {
 };
 
 const AUTOMATION_OPTIONS = [
-  { id: 'none',     label: 'Без автоматики',                           price: 0,     type: 'any' },
-  { id: 'alu_s1',  label: 'Алютех откатные — AN-Motors AC2000 Kit',   price: 28000, type: 'sliding' },
-  { id: 'alu_s2',  label: 'Алютех откатные — CAME BX-78 Kit',         price: 34000, type: 'sliding' },
-  { id: 'alu_s3',  label: 'Алютех откатные — FAAC C721 Kit',          price: 41000, type: 'sliding' },
-  { id: 'alu_w1',  label: 'Алютех распашные — AT-4024 EL Kit',        price: 22000, type: 'swing' },
-  { id: 'alu_w2',  label: 'Алютех распашные — AN-Motors AT4024',      price: 26000, type: 'swing' },
-  { id: 'alu_w3',  label: 'Алютех распашные — CAME FROG-A Kit',       price: 31000, type: 'swing' },
-  { id: 'alu_w4',  label: 'Алютех распашные — FAAC 402 Kit',          price: 35000, type: 'swing' },
-  { id: 'alu_w5',  label: 'Алютех распашные — BFT DEIMOS A800',       price: 38000, type: 'swing' },
-  { id: 'alu_w6',  label: 'Алютех распашные — NICE WINGO 5000 Kit',   price: 42000, type: 'swing' },
-  { id: 'anm_s1', label: 'AN-Motors откатные — AC2000 Pro',           price: 24000, type: 'sliding' },
-  { id: 'anm_s2', label: 'AN-Motors откатные — AC5000 Pro',           price: 29000, type: 'sliding' },
-  { id: 'anm_w1', label: 'AN-Motors распашные — AT4024 Basic',        price: 18000, type: 'swing' },
-  { id: 'anm_w2', label: 'AN-Motors распашные — AT6024 Pro',          price: 23000, type: 'swing' },
+  { id: 'none',      label: 'Без автоматики',                                    price: 0,     type: 'any' },
+  { id: 'alu_s1',   label: 'Алютех откатные — 500',                             price: 18050, type: 'sliding' },
+  { id: 'alu_s2',   label: 'Алютех откатные — 500-M kit',                       price: 19063, type: 'sliding' },
+  { id: 'alu_s3',   label: 'Алютех откатные — SMART',                           price: 22190, type: 'sliding' },
+  { id: 'alu_w1',   label: 'Алютех распашные — AM 3000 kit',                    price: 37933, type: 'swing' },
+  { id: 'alu_w2',   label: 'Алютех распашные — AM 3000 kit-N',                  price: 41854, type: 'swing' },
+  { id: 'alu_w3',   label: 'Алютех распашные — Scorpion 3000',                  price: 37821, type: 'swing' },
+  { id: 'alu_w4',   label: 'Алютех распашные — Scorpion 3000-N',                price: 39911, type: 'swing' },
+  { id: 'alu_w5',   label: 'Алютех распашные — Twisto TW4000 skit',             price: 41500, type: 'swing' },
+  { id: 'alu_w6',   label: 'Алютех распашные — Twisto TW4000 skit-N',           price: 42940, type: 'swing' },
+  { id: 'anm_s1',   label: 'AN-Motors откатные — АРВ 600kit',                   price: 11263, type: 'sliding' },
+  { id: 'anm_s2',   label: 'AN-Motors откатные — АРВ M600kit',                  price: 11493, type: 'sliding' },
+  { id: 'anm_w1',   label: 'AN-Motors распашные — АТВ 400 kit',                 price: 19740, type: 'swing' },
 ];
 
 const EXTRA_OPTIONS = [
@@ -756,7 +755,7 @@ export default function Index() {
   }, [fetchRemote]);
 
   // ── Единый источник истины для настроек (с localStorage) ───────────────────
-  const LS_KEY = 'mkc_settings_v1';
+  const LS_KEY = 'mkc_settings_v3';
 
   function loadSettings() {
     try {
@@ -776,6 +775,7 @@ export default function Index() {
     { id: 'sliding',      label: 'Откатные',            price: DEFAULT_GATE_PRICES.sliding },
     { id: 'swing',        label: 'Распашные',           price: DEFAULT_GATE_PRICES.swing },
     { id: 'swing_wicket', label: 'Распашные + калитка', price: DEFAULT_GATE_PRICES.swing_wicket },
+    { id: 'accordion',    label: 'Гармошка',            price: DEFAULT_GATE_PRICES.accordion },
     { id: 'wicket',       label: 'Отдельная калитка',   price: DEFAULT_WICKET_PRICE },
   ]);
 
@@ -828,6 +828,7 @@ export default function Index() {
     sliding:      gateItemMap['sliding']?.price      ?? DEFAULT_GATE_PRICES.sliding,
     swing:        gateItemMap['swing']?.price        ?? DEFAULT_GATE_PRICES.swing,
     swing_wicket: gateItemMap['swing_wicket']?.price ?? DEFAULT_GATE_PRICES.swing_wicket,
+    accordion:    gateItemMap['accordion']?.price    ?? DEFAULT_GATE_PRICES.accordion,
   };
   const wicketPrice = gateItemMap['wicket']?.price ?? DEFAULT_WICKET_PRICE;
 
@@ -853,7 +854,7 @@ export default function Index() {
   const gateArea   = (gateW * gateH) / 1e6;
   const wicketArea = hasWicket ? (wicketW * wicketH) / 1e6 : 0;
   const totalArea  = gateArea + wicketArea;
-  const curGatePrice = gateTypePrices[gateType] ?? 0;
+  const curGatePrice = gateTypePrices[gateType] ?? gateItemMap[gateType]?.price ?? 0;
   const baseGate   = curGatePrice * (isNonStd ? 1.05 : 1);
   const wicketPr   = hasWicket ? wicketPrice : 0;
 
@@ -1073,19 +1074,19 @@ export default function Index() {
               {/* 2. Тип */}
               <div className="glass-card p-5">
                 <SectionTitle icon="DoorOpen" title="2. Тип открывания" />
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  {(['sliding','swing','swing_wicket'] as GateType[]).map(t => {
-                    const item = gateItems.find(i => i.id === t);
-                    const p = gateTypePrices[t];
-                    const label = item?.label ?? t;
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {gateItems.filter(i => i.id !== 'wicket').map(item => {
+                    const t = item.id as GateType;
+                    const p = gateTypePrices[t] ?? item.price;
+                    const iconMap: Record<string, string> = { sliding: 'MoveHorizontal', swing: 'GitFork', swing_wicket: 'GitFork', accordion: 'Rows3' };
                     return (
                       <button key={t} onClick={() => setGateType(t)}
                         className="p-3 rounded-xl text-left transition-all"
                         style={{ border: `1px solid ${gateType === t ? 'rgba(10,132,255,0.55)' : 'rgba(255,255,255,0.07)'}`, background: gateType === t ? 'rgba(10,132,255,0.09)' : 'transparent' }}>
                         <div className="flex items-center gap-2 mb-1.5">
-                          <Icon name={t === 'sliding' ? 'MoveHorizontal' : 'GitFork'} size={13}
+                          <Icon name={iconMap[item.id] ?? 'DoorOpen'} size={13}
                             style={{ color: gateType === t ? 'var(--blue)' : 'var(--steel)' }} />
-                          <span className="text-xs font-semibold" style={{ color: gateType === t ? 'var(--blue)' : '#9CA3AF' }}>{label}</span>
+                          <span className="text-xs font-semibold" style={{ color: gateType === t ? 'var(--blue)' : '#9CA3AF' }}>{item.label}</span>
                         </div>
                         <div className="font-mono text-sm font-bold" style={{ color: gateType === t ? 'var(--green)' : '#374151' }}>{fmt(p)}</div>
                       </button>

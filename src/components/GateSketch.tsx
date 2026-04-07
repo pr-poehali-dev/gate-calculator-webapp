@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type GateType    = 'sliding' | 'swing' | 'swing_wicket';
+export type GateType    = 'sliding' | 'swing' | 'swing_wicket' | 'accordion';
 export type FillType    = 'proflist' | 'rancho' | 'jalusi' | 'siding' | 'shtaketnik';
 export type FillDir     = 'horizontal' | 'vertical';
 export type OpenDir     = 'left' | 'right'; // направление открытия ворот/калитки
@@ -211,6 +211,76 @@ function WicketPanel({
   );
 }
 
+/**
+ * Гармошка — каждая створка складывается пополам «книжкой».
+ * Левая панель: левая секция уходит влево, правая складывается к ней.
+ * Правая панель: зеркально.
+ * При openDir='left'  — вся конструкция складывается влево.
+ * При openDir='right' — вправо.
+ */
+function AccordionHalf({
+  x, y, w, h, fillType, fillDir, patId, isOpen, side, openDir,
+}: {
+  x: number; y: number; w: number; h: number;
+  fillType: FillType; fillDir: FillDir; patId: string;
+  isOpen: boolean; side: 'left' | 'right'; openDir: OpenDir;
+}) {
+  const hw = w / 2; // ширина каждой секции
+
+  // Секция A — внешняя (дальняя от центра), складывается вместе с B
+  // Секция B — внутренняя (ближняя к центру), остаётся ближе к стойке
+  // При открытии обе секции складываются к стойке
+
+  // Для левой половины: стойка слева (x), центр справа (x + w)
+  // Секция A: от x до x+hw, Секция B: от x+hw до x+w
+  // При складывании влево: секция A поворачивается вокруг x, секция B вокруг x+hw
+  // Для правой половины — зеркально
+
+  let angleA = 0;
+  let angleB = 0;
+  const foldDir = (side === 'left') ? -1 : 1; // направление складывания к стойке
+
+  if (isOpen) {
+    // Раскрываем на 70° — секции складываются книжкой
+    angleA = foldDir * 70;
+    angleB = -foldDir * 140; // B складывается в обратную сторону относительно A
+  }
+
+  const pivotAx = side === 'left' ? x      : x + w;
+  const pivotBx = side === 'left' ? x + hw : x + hw;
+
+  const sectionAx = side === 'left' ? x      : x + hw;
+  const sectionBx = side === 'left' ? x + hw : x;
+
+  return (
+    <g>
+      {/* Секция A — крайняя (у стойки) */}
+      <g style={{
+        transformOrigin: `${pivotAx}px ${y + h}px`,
+        transform: `rotate(${angleA}deg)`,
+        transition: 'transform 0.55s cubic-bezier(0.4,0,0.2,1)',
+      }}>
+        <rect x={sectionAx} y={y} width={hw} height={h} fill={`url(#${patId})`} rx="1" />
+        <rect x={sectionAx} y={y} width={hw} height={h} fill="none" stroke="#3A4E64" strokeWidth="1.5" rx="1" />
+        <line x1={sectionAx + 2} y1={y + h * 0.5} x2={sectionAx + hw - 2} y2={y + h * 0.5} stroke="#3A4E64" strokeWidth="1" />
+        {/* Центральный шарнир */}
+        <circle cx={side === 'left' ? sectionAx + hw : sectionAx} cy={y + h * 0.25} r="3" fill="#0A84FF" opacity="0.8" />
+        <circle cx={side === 'left' ? sectionAx + hw : sectionAx} cy={y + h * 0.75} r="3" fill="#0A84FF" opacity="0.8" />
+        {/* Секция B — внутренняя, крепится к A */}
+        <g style={{
+          transformOrigin: `${side === 'left' ? sectionAx + hw : sectionAx}px ${y + h}px`,
+          transform: `rotate(${angleB}deg)`,
+          transition: 'transform 0.55s cubic-bezier(0.4,0,0.2,1)',
+        }}>
+          <rect x={sectionBx} y={y} width={hw} height={h} fill={`url(#${patId})`} rx="1" />
+          <rect x={sectionBx} y={y} width={hw} height={h} fill="none" stroke="#4A5E74" strokeWidth="1.5" rx="1" />
+          <line x1={sectionBx + 2} y1={y + h * 0.5} x2={sectionBx + hw - 2} y2={y + h * 0.5} stroke="#4A5E74" strokeWidth="1" />
+        </g>
+      </g>
+    </g>
+  );
+}
+
 function DimArrow({ x1, y1, x2, y2, label, color = '#0A84FF' }: {
   x1: number; y1: number; x2: number; y2: number; label: string; color?: string;
 }) {
@@ -364,6 +434,45 @@ const GateSketch: React.FC<GateSketchProps> = ({
         );
       })()}
 
+      {/* ── ГАРМОШКА ── */}
+      {gateType === 'accordion' && (
+        <g>
+          {/* Стойки */}
+          <rect x={gX - postW} y={gY - 10} width={postW} height={gH + 10} fill="#1E2D40" stroke="#2A3A50" strokeWidth="1.5" />
+          <rect x={gX + gW}    y={gY - 10} width={postW} height={gH + 10} fill="#1E2D40" stroke="#2A3A50" strokeWidth="1.5" />
+          {/* Направляющая рейка вверху */}
+          <rect x={gX - postW} y={gY - 10} width={gW + postW * 2} height={8} fill="#243040" stroke="#2A3A50" strokeWidth="1" rx="2" />
+
+          {/* Левая половина-гармошка */}
+          <AccordionHalf
+            x={gX} y={gY} w={gW / 2} h={gH}
+            fillType={fillType} fillDir={fillDir} patId="fill-main"
+            isOpen={isOpen} side="left" openDir={openDir}
+          />
+          {/* Правая половина-гармошка */}
+          <AccordionHalf
+            x={gX + gW / 2} y={gY} w={gW / 2} h={gH}
+            fillType={fillType} fillDir={fillDir} patId="fill-main"
+            isOpen={isOpen} side="right" openDir={openDir}
+          />
+
+          {/* Центральный замок */}
+          {!isOpen && (
+            <rect x={gX + gW / 2 - 3} y={gY + gH * 0.35}
+              width={6} height={gH * 0.3}
+              fill="#243040" stroke="#0A84FF" strokeWidth="1" rx="2" />
+          )}
+
+          {/* Переключатель направления */}
+          <text x={gateCX} y={btnY - 14} fill="#6B7280" fontSize="7"
+            fontFamily="IBM Plex Mono, monospace" textAnchor="middle">СКЛАДЫВАНИЕ</text>
+          <DirToggle cx={gateCX - 18} cy={btnY} dir="left" active={openDir === 'left'}
+            onClick={() => onOpenDirChange('left')} />
+          <DirToggle cx={gateCX + 18} cy={btnY} dir="right" active={openDir === 'right'}
+            onClick={() => onOpenDirChange('right')} />
+        </g>
+      )}
+
       {/* ── РАСПАШНЫЕ ── */}
       {(gateType === 'swing' || gateType === 'swing_wicket') && (
         <g>
@@ -474,7 +583,7 @@ const GateSketch: React.FC<GateSketchProps> = ({
       <text x={SVG_W / 2} y={SVG_H - 8}
         fill="#627d98" fontSize="10" fontFamily="IBM Plex Mono, monospace"
         textAnchor="middle" letterSpacing="0.08em">
-        {gateType === 'sliding' ? 'ОТКАТНЫЕ' : gateType === 'swing' ? 'РАСПАШНЫЕ' : 'РАСПАШНЫЕ С КАЛИТКОЙ'}
+        {gateType === 'sliding' ? 'ОТКАТНЫЕ' : gateType === 'swing' ? 'РАСПАШНЫЕ' : gateType === 'accordion' ? 'ГАРМОШКА' : 'РАСПАШНЫЕ С КАЛИТКОЙ'}
         {' · '}{FILL_COLORS[fillType].label.toUpperCase()}
         {' · '}{fillDir === 'vertical' ? 'ВЕРТ.' : 'ГОРИЗ.'}
       </text>

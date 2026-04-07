@@ -887,7 +887,7 @@ export default function Index() {
       const typ = src?.type ?? 'any';
       return { id: i.id, label: i.label, price: i.price, type: typ };
     }),
-  ].filter(o => o.id === 'none' || o.type === 'any' || (isSwingType ? o.type === 'swing' : o.type === 'sliding'));
+  ];
   const autoOpt = allAutoOpts.find(o => o.id === autoId) ?? allAutoOpts[0];
   // Сброс выбора если не подходит текущему типу
   const autoPr  = autoOpt.price;

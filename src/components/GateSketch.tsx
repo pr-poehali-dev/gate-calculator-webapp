@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type GateType    = 'sliding' | 'swing' | 'swing_wicket' | 'accordion';
+export type GateType    = 'sliding' | 'swing' | 'swing_wicket' | 'accordion' | 'sliding_wicket';
 export type FillType    = 'proflist' | 'rancho' | 'jalusi' | 'siding' | 'shtaketnik';
 export type FillDir     = 'horizontal' | 'vertical';
 export type OpenDir     = 'left' | 'right'; // направление открытия ворот/калитки
@@ -395,6 +395,80 @@ const GateSketch: React.FC<GateSketchProps> = ({
       <rect x={0} y={groundY} width={SVG_W} height={SVG_H - groundY} fill="#161F2E" />
       <line x1={0} y1={groundY} x2={SVG_W} y2={groundY} stroke="#2A3A4E" strokeWidth="1.5" />
 
+      {/* ── ОТКАТНЫЕ + КАЛИТКА ── */}
+      {gateType === 'sliding_wicket' && (() => {
+        const shift = openDir === 'right' ? gW * 0.58 : -gW * 0.58;
+        return (
+          <g filter="url(#shadow)">
+            {/* Рельса */}
+            <rect x={gX - 30} y={groundY - railH} width={gW + 60} height={railH}
+              fill="#1A2535" stroke="#2A3A50" strokeWidth="1" />
+            <line x1={gX - 30} y1={groundY - railH / 2} x2={gX + gW + 30} y2={groundY - railH / 2}
+              stroke="#0A84FF" strokeWidth="1" strokeDasharray="6 4" opacity="0.5" />
+            {/* Левый столб */}
+            <rect x={gX - postW} y={gY - 10} width={postW} height={gH + 10 - railH}
+              fill="#1E2D40" stroke="#2A3A50" strokeWidth="1.5" />
+            {/* Откатное полотно с анимацией */}
+            <g style={{
+              transform: isOpen ? `translateX(${shift}px)` : 'translateX(0)',
+              transition: 'transform 0.55s cubic-bezier(0.4,0,0.2,1)',
+            }}>
+              <rect x={gX} y={gY} width={gW} height={gH - railH} fill="url(#fill-main)" rx="1" />
+              <rect x={gX} y={gY} width={gW} height={gH - railH} fill="none" stroke="#3A4E64" strokeWidth="2" rx="1" />
+              <PanelRibs x={gX} y={gY} w={gW} h={gH - railH} fillDir={fillDir} />
+            </g>
+            {/* Правый столб */}
+            <rect x={gX + gW} y={gY - 10} width={postW} height={gH + 10 - railH}
+              fill="#1E2D40" stroke="#2A3A50" strokeWidth="1.5" />
+            {/* Ролики */}
+            {[gX + 30, gX + gW - 30].map((cx, i) => (
+              <g key={i}>
+                <circle cx={cx} cy={groundY - railH / 2} r={7} fill="#243040" stroke="#0A84FF" strokeWidth="1.5" />
+                <circle cx={cx} cy={groundY - railH / 2} r={2.5} fill="#0A84FF" />
+              </g>
+            ))}
+            {/* Переключатель откатывания */}
+            <text x={gateCX} y={btnY - 14} fill="#6B7280" fontSize="7"
+              fontFamily="IBM Plex Mono, monospace" textAnchor="middle">ОТКАТ</text>
+            <DirToggle cx={gateCX - 18} cy={btnY} dir="left" active={openDir === 'left'}
+              onClick={() => onOpenDirChange('left')} />
+            <DirToggle cx={gateCX + 18} cy={btnY} dir="right" active={openDir === 'right'}
+              onClick={() => onOpenDirChange('right')} />
+
+            {/* Встроенная калитка в правом столбе */}
+            <>
+              {/* Столб-блок для калитки */}
+              <rect x={gX + gW + postW} y={gY - 10} width={postW * 2} height={gH + 10}
+                fill="#1E2D40" stroke="#2A3A50" strokeWidth="1.5" />
+              {/* Петли калитки */}
+              {[0.3, 0.7].map((f, i) => (
+                <rect key={i}
+                  x={wicketOpenDir === 'left' ? gX + gW + postW - 2 : gX + gW + postW * 3 - 2}
+                  y={gY + wkY + wkH * f - 4} width={postW} height={8}
+                  fill="#22C55E" rx="2" opacity="0.85" />
+              ))}
+              <text x={gX + gW + postW * 2.5} y={wkY + gY - 4}
+                fill="#22C55E" fontSize="7.5" fontFamily="IBM Plex Mono, monospace" textAnchor="middle">
+                КАЛИТКА
+              </text>
+              <WicketPanel
+                x={gX + gW + postW * 3} y={gY + gH - wkH}
+                w={wkW * 0.8} h={wkH}
+                fillType={fillType} fillDir={fillDir} patId="fill-wk"
+                isOpen={isOpen} openDir={wicketOpenDir}
+              />
+              {/* Переключатель направления калитки */}
+              <DirToggle cx={gX + gW + postW * 2.5 - 18} cy={gY + gH - wkH / 2} dir="left"
+                active={wicketOpenDir === 'left'}
+                onClick={() => onWicketOpenDirChange('left')} />
+              <DirToggle cx={gX + gW + postW * 2.5 + 18} cy={gY + gH - wkH / 2} dir="right"
+                active={wicketOpenDir === 'right'}
+                onClick={() => onWicketOpenDirChange('right')} />
+            </>
+          </g>
+        );
+      })()}
+
       {/* ── ОТКАТНЫЕ ── */}
       {gateType === 'sliding' && (() => {
         // Откатные: openDir = направление откатывания (в какую сторону уходит полотно)
@@ -583,7 +657,7 @@ const GateSketch: React.FC<GateSketchProps> = ({
       <text x={SVG_W / 2} y={SVG_H - 8}
         fill="#627d98" fontSize="10" fontFamily="IBM Plex Mono, monospace"
         textAnchor="middle" letterSpacing="0.08em">
-        {gateType === 'sliding' ? 'ОТКАТНЫЕ' : gateType === 'swing' ? 'РАСПАШНЫЕ' : gateType === 'accordion' ? 'ГАРМОШКА' : 'РАСПАШНЫЕ С КАЛИТКОЙ'}
+        {gateType === 'sliding' ? 'ОТКАТНЫЕ' : gateType === 'sliding_wicket' ? 'ОТКАТНЫЕ + КАЛИТКА' : gateType === 'swing' ? 'РАСПАШНЫЕ' : gateType === 'accordion' ? 'ГАРМОШКА' : 'РАСПАШНЫЕ С КАЛИТКОЙ'}
         {' · '}{FILL_COLORS[fillType].label.toUpperCase()}
         {' · '}{fillDir === 'vertical' ? 'ВЕРТ.' : 'ГОРИЗ.'}
       </text>

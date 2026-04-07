@@ -10,7 +10,7 @@ const API = {
 };
 
 // ─── Default prices (editable) ───────────────────────────────────────────────
-const DEFAULT_GATE_PRICES: Record<GateType, number> = { sliding: 35000, swing: 30000, swing_wicket: 40000, accordion: 50000 };
+const DEFAULT_GATE_PRICES: Record<GateType, number> = { sliding: 35000, swing: 30000, swing_wicket: 40000, accordion: 50000, sliding_wicket: 45000 };
 const DEFAULT_FILL_PRICES: Record<FillType, number>  = { proflist: 1000, rancho: 3500, jalusi: 4500, siding: 1500, shtaketnik: 1300 };
 const DEFAULT_WICKET_PRICE   = 16000;
 const DEFAULT_INST_AUTO      = 10000;
@@ -489,6 +489,10 @@ interface KpData {
   fillSides: 'none' | 'single' | 'double';
   fillColor: string;
   fillColorName: string;
+  paintType: 'powder' | 'enamel';
+  vendor: 'alutech' | 'none';
+  discount: number;
+  discountAmt: number;
   gateWeightTotal: number;
   wicketWeightTotal: number;
   swingDir: 'inward' | 'outward';
@@ -499,8 +503,10 @@ interface KpData {
 function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
   const printRef = useRef<HTMLDivElement>(null);
 
-  const gateTypeLabel = data.gateType === 'sliding' ? 'Откатные' : data.gateType === 'swing' ? 'Распашные' : data.gateType === 'accordion' ? 'Гармошка' : 'Распашные с калиткой';
+  const gateTypeLabel = data.gateType === 'sliding' ? 'Откатные' : data.gateType === 'sliding_wicket' ? 'Откатные + калитка' : data.gateType === 'swing' ? 'Распашные' : data.gateType === 'accordion' ? 'Гармошка' : 'Распашные с калиткой';
   const fillSidesLabel = (data.fillSides ?? 'single') === 'none' ? 'Без заполнения' : (data.fillSides ?? 'single') === 'double' ? 'Двухстороннее' : 'Одностороннее';
+  const paintLabel = (data.paintType ?? 'powder') === 'powder' ? 'Порошковая покраска' : 'Покраска эмалью';
+  const vendorLabel = (data.vendor ?? 'none') === 'alutech' ? 'Алютех' : null;
   const openDirLabel = data.openDir === 'left' ? 'Влево' : 'Вправо';
   const swingDirLabel = (data.swingDir ?? 'outward') === 'outward' ? 'Наружу' : 'Внутрь';
   const productLines = data.lineItems.filter(r => !(r as {isInstall?:boolean}).isInstall);
@@ -579,21 +585,24 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
           <td class="td-name">
             <b>Ворота ${gateTypeLabel} ${(data.gateW/1000).toFixed(2)}×${(data.gateH/1000).toFixed(2)} м</b>
             <span class="weight-badge">~${data.gateWeightTotal ?? '—'} кг</span>
+            ${vendorLabel ? `<span style="display:inline-block;background:#f0f7ff;border:1px solid #0A70E8;border-radius:3px;padding:1px 6px;font-size:10px;color:#0A70E8;font-weight:700;margin-left:4px;">Алютех</span>` : ''}
           </td>
-          <td class="td-price">${Math.round(data.subtotal - (installLines.reduce((s,r) => s+r.value, 0))).toLocaleString('ru-RU')}</td>
+          <td class="td-price">${productLines.reduce((s,r)=>s+r.value,0).toLocaleString('ru-RU')}</td>
           <td class="td-qty">1</td>
           <td class="td-unit">шт.</td>
-          <td class="td-sum">${Math.round(data.subtotal - (installLines.reduce((s,r) => s+r.value, 0))).toLocaleString('ru-RU')}</td>
+          <td class="td-sum">${productLines.reduce((s,r)=>s+r.value,0).toLocaleString('ru-RU')}</td>
         </tr>
         <!-- Спецификация -->
         <tr class="spec-row"><td colspan="6">Ширина проёма: ${data.gateW} мм</td></tr>
         <tr class="spec-row"><td colspan="6">Высота полотна: ${data.gateH} мм</td></tr>
-        <tr class="spec-row"><td colspan="6">Площадь полотна: ${data.gateArea.toFixed(2)} м²${data.hasWicket ? ` + ${data.wicketArea.toFixed(2)} м² (калитка)` : ''}</td></tr>
+        <tr class="spec-row"><td colspan="6">Площадь: ${data.gateArea.toFixed(2)} м²${data.hasWicket ? ` + ${data.wicketArea.toFixed(2)} м² (калитка)` : ''}</td></tr>
         <tr class="spec-row"><td colspan="6">Вес конструкции: ~${data.gateWeightTotal ?? '—'} кг${data.hasWicket && data.wicketWeightTotal ? ` + ~${data.wicketWeightTotal} кг (калитка)` : ''}</td></tr>
         <tr class="spec-row"><td colspan="6">Тип открывания: ${gateTypeLabel}${data.gateType === 'swing' || data.gateType === 'swing_wicket' ? ` — ${swingDirLabel}, петли ${openDirLabel.toLowerCase()}` : ` — ${openDirLabel}`}</td></tr>
         <tr class="spec-row"><td colspan="6">Заполнение: ${data.fillLabel} — ${fillSidesLabel}, направление ${data.fillDir === 'horizontal' ? 'горизонтальное' : 'вертикальное'}</td></tr>
         ${data.fillColor && data.fillSides !== 'none' ? `<tr class="spec-row"><td colspan="6">Цвет заполнения: ${data.fillColor} — ${data.fillColorName}</td></tr>` : ''}
-        ${data.isNonStd ? `<tr class="spec-row"><td colspan="6"><b style="color:#c00">Нестандартный размер — надбавка +15%</b></td></tr>` : ''}
+        ${data.fillSides !== 'none' ? `<tr class="spec-row"><td colspan="6">Тип покраски: ${paintLabel}</td></tr>` : ''}
+        ${vendorLabel ? `<tr class="spec-row"><td colspan="6">Производитель комплектующих: ${vendorLabel}</td></tr>` : ''}
+        ${data.isNonStd ? `<tr class="spec-row"><td colspan="6"><b style="color:#c00">Площадь ${data.gateArea.toFixed(2)} м² — надбавка за нестандарт</b></td></tr>` : ''}
         ${data.hasWicket ? `<tr class="spec-row"><td colspan="6">Калитка: ${(data.wicketW/1000).toFixed(2)}×${(data.wicketH/1000).toFixed(2)} м</td></tr>` : ''}
         ${data.autoLabel && data.autoLabel !== 'Без автоматики' ? `<tr class="spec-row"><td colspan="6">Автоматика: ${data.autoLabel}</td></tr>` : ''}
         ${data.extras.map(e => `<tr class="spec-row"><td colspan="6">Доп. опция: ${e}</td></tr>`).join('')}
@@ -610,11 +619,10 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
           <td class="td-sum">${r.value.toLocaleString('ru-RU')}</td>
         </tr>`).join('')}` : ''}
 
-        ${data.markupAmt > 0 ? `
-        <tr class="section-header"><td colspan="6">Наценки</td></tr>
-        <tr>
-          <td colspan="5" style="text-align:right">Наценка ${data.markup}% (на изделие)</td>
-          <td class="td-sum">${data.markupAmt.toLocaleString('ru-RU')}</td>
+        ${(data.discount ?? 0) > 0 ? `
+        <tr style="background:#f0fdf4;">
+          <td colspan="5" style="padding:6px 8px;text-align:right;color:#16a34a;font-weight:600;border:1px solid #e2e8f0;">Скидка ${data.discount}% (на изделие)</td>
+          <td style="padding:6px 8px;text-align:right;font-family:monospace;font-weight:700;color:#16a34a;border:1px solid #e2e8f0;white-space:nowrap;">-${(data.discountAmt ?? 0).toLocaleString('ru-RU')} ₽</td>
         </tr>` : ''}
 
         <tr class="total-final">
@@ -679,10 +687,13 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
               { label: 'Площадь', val: `${data.gateArea.toFixed(2)} м²` },
               { label: 'Заполнение', val: `${data.fillLabel} · ${fillSidesLabel}` },
               { label: 'Цвет', val: data.fillColor && data.fillSides !== 'none' ? `${data.fillColor} ${data.fillColorName}` : '—' },
+              { label: 'Покраска', val: data.fillSides !== 'none' ? paintLabel : '—' },
               { label: 'Вес конструкции', val: `~${data.gateWeightTotal ?? '—'} кг` },
+              ...(vendorLabel ? [{ label: 'Производитель', val: vendorLabel }] : []),
               ...(data.hasWicket ? [{ label: 'Калитка', val: `${(data.wicketW/1000).toFixed(2)} × ${(data.wicketH/1000).toFixed(2)} м` }] : []),
               ...(data.autoLabel !== 'Без автоматики' ? [{ label: 'Автоматика', val: data.autoLabel }] : []),
               ...(data.gateType === 'swing' || data.gateType === 'swing_wicket' ? [{ label: 'Открытие', val: `${swingDirLabel} · петли ${openDirLabel.toLowerCase()}` }] : []),
+              ...((data.discount ?? 0) > 0 ? [{ label: 'Скидка', val: `${data.discount}% (−${fmt(data.discountAmt ?? 0)})` }] : []),
             ].map((row, i) => (
               <div key={i} className="rounded-lg p-2.5" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                 <div className="text-xs mb-0.5" style={{ color: '#718096' }}>{row.label}</div>
@@ -724,6 +735,9 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
                       Ворота {gateTypeLabel} {(data.gateW/1000).toFixed(2)}×{(data.gateH/1000).toFixed(2)} м
                       <span style={{ display: 'inline-block', background: '#e8f0fb', border: '1px solid #0A70E8', borderRadius: 3, padding: '1px 6px', fontSize: 10, color: '#0A70E8', fontWeight: 700, marginLeft: 6 }}>~{data.gateWeightTotal ?? '—'} кг</span>
                     </div>
+                    {vendorLabel && (
+                      <span style={{ display: 'inline-block', background: '#f0f7ff', border: '1px solid #0A70E8', borderRadius: 3, padding: '1px 6px', fontSize: 10, color: '#0A70E8', fontWeight: 700, marginLeft: 6 }}>Алютех</span>
+                    )}
                     {/* Спецификация */}
                     {[
                       `Ширина проёма: ${data.gateW} мм`,
@@ -733,7 +747,9 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
                       ...(data.gateType === 'swing' || data.gateType === 'swing_wicket' ? [`Направление открытия: ${swingDirLabel}, петли ${openDirLabel.toLowerCase()}`] : [`Направление откатывания: ${openDirLabel}`]),
                       `Заполнение: ${data.fillLabel} — ${fillSidesLabel}, ${data.fillDir === 'horizontal' ? 'горизонтальное' : 'вертикальное'}`,
                       ...(data.fillColor && data.fillSides !== 'none' ? [`Цвет: ${data.fillColor} — ${data.fillColorName}`] : []),
-                      ...(data.isNonStd ? ['⚠ Нестандартный размер — надбавка +15%'] : []),
+                      ...(data.fillSides !== 'none' ? [`Тип покраски: ${paintLabel}`] : []),
+                      ...(vendorLabel ? [`Производитель комплектующих: ${vendorLabel}`] : []),
+                      ...(data.isNonStd ? [`⚠ Площадь ${data.gateArea.toFixed(2)} м² — надбавка за нестандарт`] : []),
                       ...(data.hasWicket ? [`Калитка: ${(data.wicketW/1000).toFixed(2)}×${(data.wicketH/1000).toFixed(2)} м`] : []),
                       ...(data.autoLabel !== 'Без автоматики' ? [`Автоматика: ${data.autoLabel}`] : []),
                       ...data.extras.map(e => `Доп. опция: ${e}`),
@@ -768,19 +784,12 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
                   </tr>
                 ))}
 
-                {/* Наценка */}
-                {data.markupAmt > 0 && (
-                  <>
-                    <tr style={{ background: '#fffbeb' }}>
-                      <td colSpan={6} style={{ padding: '5px 8px', fontWeight: 700, fontSize: 11, border: '1px solid #e2e8f0', color: '#374151' }}>Наценки</td>
-                    </tr>
-                    <tr style={{ background: '#fffbeb' }}>
-                      <td style={{ padding: '6px 8px', textAlign: 'center', border: '1px solid #e2e8f0' }}>—</td>
-                      <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>Наценка {data.markup}% (на изделие)</td>
-                      <td colSpan={3} style={{ border: '1px solid #e2e8f0' }}></td>
-                      <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, border: '1px solid #e2e8f0', whiteSpace: 'nowrap', color: '#d97706' }}>{data.markupAmt.toLocaleString('ru-RU')} ₽</td>
-                    </tr>
-                  </>
+                {/* Скидка */}
+                {(data.discount ?? 0) > 0 && (
+                  <tr style={{ background: '#f0fdf4' }}>
+                    <td colSpan={5} style={{ padding: '6px 8px', fontWeight: 600, fontSize: 12, border: '1px solid #e2e8f0', color: '#16a34a', textAlign: 'right' }}>Скидка {data.discount}% (на изделие)</td>
+                    <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, border: '1px solid #e2e8f0', whiteSpace: 'nowrap', color: '#16a34a' }}>-{(data.discountAmt ?? 0).toLocaleString('ru-RU')} ₽</td>
+                  </tr>
                 )}
 
                 {/* Итого */}
@@ -1052,6 +1061,12 @@ export default function Index() {
   const [fillColorName, setFillColorName] = useState('Антрацитово-серый');
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [colorSearch, setColorSearch] = useState('');
+  // Скидка на изделие (%)
+  const [discount, setDiscount] = useState(0);
+  // Производитель комплектующих
+  const [vendor, setVendor] = useState<'alutech' | 'none'>('none');
+  // Тип покраски
+  const [paintType, setPaintType] = useState<'powder' | 'enamel'>('powder');
   // Доп. работы (ручной ввод)
   const [customWorks, setCustomWorks] = useState<{id: string; label: string; price: number}[]>([]);
 
@@ -1105,11 +1120,12 @@ export default function Index() {
   });
 
   const [gateItems, setGateItemsRaw] = useState<EditItem[]>(saved?.gateItems ?? [
-    { id: 'sliding',      label: 'Откатные',            price: DEFAULT_GATE_PRICES.sliding },
-    { id: 'swing',        label: 'Распашные',           price: DEFAULT_GATE_PRICES.swing },
-    { id: 'swing_wicket', label: 'Распашные + калитка', price: DEFAULT_GATE_PRICES.swing_wicket },
-    { id: 'accordion',    label: 'Гармошка',            price: DEFAULT_GATE_PRICES.accordion },
-    { id: 'wicket',       label: 'Отдельная калитка',   price: DEFAULT_WICKET_PRICE },
+    { id: 'sliding',         label: 'Откатные',                  price: DEFAULT_GATE_PRICES.sliding },
+    { id: 'sliding_wicket',  label: 'Откатные + калитка',        price: DEFAULT_GATE_PRICES.sliding_wicket },
+    { id: 'swing',           label: 'Распашные',                 price: DEFAULT_GATE_PRICES.swing },
+    { id: 'swing_wicket',    label: 'Распашные + калитка',       price: DEFAULT_GATE_PRICES.swing_wicket },
+    { id: 'accordion',       label: 'Гармошка',                  price: DEFAULT_GATE_PRICES.accordion },
+    { id: 'wicket',          label: 'Отдельная калитка',         price: DEFAULT_WICKET_PRICE },
   ]);
 
   const [fillItems, setFillItemsRaw] = useState<EditItem[]>(saved?.fillItems ?? [
@@ -1193,17 +1209,22 @@ export default function Index() {
   const makeId = () => Math.random().toString(36).slice(2, 8);
 
   // Calcs — всё из динамических items
-  const isNonStd   = gateW > 4000 || gateH > 2200;
-  const nonStdCoef = isNonStd ? 1.15 : 1; // +15% для нестандарта
+  const STD_AREA   = 8; // м² — стандартная площадь
   const gateArea   = (gateW * gateH) / 1e6;
   const wicketArea = hasWicket ? (wicketW * wicketH) / 1e6 : 0;
   const totalArea  = gateArea + wicketArea;
   const curGatePrice = gateTypePrices[gateType] ?? gateItemMap[gateType]?.price ?? 0;
+  // Плавающая надбавка: за каждый м² сверх STD_AREA добавляется +10%
+  const isNonStd    = gateArea > STD_AREA;
+  const extraArea   = Math.max(0, gateArea - STD_AREA);
+  const nonStdCoef  = 1 + extraArea * 0.10; // +10% за каждый лишний м²
+  const nonStdAddAmt = isNonStd ? Math.round(curGatePrice * (nonStdCoef - 1)) : 0;
   const baseGate   = curGatePrice * nonStdCoef;
   const wicketPr   = hasWicket ? wicketPrice : 0;
 
   // Автоматика — фильтрация по типу ворот
   const isSwingType = gateType === 'swing' || gateType === 'swing_wicket' || gateType === 'accordion';
+  const isSlidingType = gateType === 'sliding' || gateType === 'sliding_wicket';
   type AutoOpt = { id: string; label: string; price: number; type: string };
   const allAutoOpts: AutoOpt[] = [
     { id: 'none', label: 'Без автоматики', price: 0, type: 'any' },
@@ -1242,10 +1263,11 @@ export default function Index() {
   const instFrmPr  = installFrame ? instFrame : 0;
   const instWkPr   = (hasWicket && installWicket) ? instWicket : 0;
   const installTotal = instAutoPr + instFillPr + instGatePr + instFrmPr + instWkPr + customWorks.reduce((s, w) => s + w.price, 0);
-  const productTotal = baseGate + wicketPr + autoPr + fillPrActual + extrasPr;
-  const subtotal     = productTotal + installTotal;
-  const markupAmt    = markup > 0 ? Math.round(productTotal * markup / 100) : 0;
-  const total        = subtotal + markupAmt;
+  const productTotal  = baseGate + wicketPr + autoPr + fillPrActual + extrasPr;
+  const discountAmt   = discount > 0 ? Math.round(productTotal * discount / 100) : 0;
+  const subtotal      = productTotal - discountAmt + installTotal;
+  const markupAmt     = markup > 0 ? Math.round((productTotal - discountAmt) * markup / 100) : 0;
+  const total         = subtotal + markupAmt;
 
   const toggleExtra = useCallback((id: string) => {
     setExtras(prev => { const n = new Set(prev); if (n.has(id)) { n.delete(id); } else { n.add(id); } return n; });
@@ -1263,10 +1285,10 @@ export default function Index() {
   // Имена типов ворот из gateItems
   const gateTypeLabel = gateItems.find(i => i.id === gateType)?.label ?? gateType;
 
-  type LineItem = { label: string; value: number; show: boolean; warn?: boolean; accent?: boolean; isInstall?: boolean };
+  type LineItem = { label: string; value: number; show: boolean; warn?: boolean; accent?: boolean; isInstall?: boolean; isDiscount?: boolean };
   const lineItems: LineItem[] = [
     { label: `Ворота: ${gateTypeLabel}`, value: curGatePrice, show: true },
-    { label: 'Надбавка нестандарт +15%', value: Math.round(curGatePrice * 0.15), show: isNonStd, warn: true },
+    { label: `Надбавка за площадь ${gateArea.toFixed(2)} м² (+${Math.round((nonStdCoef-1)*100)}%)`, value: nonStdAddAmt, show: isNonStd, warn: true },
     { label: `Калитка (${gateItems.find(i=>i.id==='wicket')?.label ?? 'калитка'})`, value: wicketPr, show: hasWicket },
     { label: autoOpt.label, value: autoPr, show: autoPr > 0 },
     { label: `Заполнение: ${curFillLabel}${fillSides === 'double' ? ' (2х)' : fillSides === 'none' ? ' (без)' : ''}`, value: Math.round(fillPrActual), show: true },
@@ -1277,10 +1299,11 @@ export default function Index() {
     { label: instFrameLabel,  value: instFrmPr,              show: installFrame,                 isInstall: true },
     { label: instWicketLabel, value: instWkPr,               show: installWicket && hasWicket,   isInstall: true },
     ...customWorks.map(w => ({ label: w.label, value: w.price, show: true, isInstall: true })),
+    { label: `Скидка ${discount}% (на изделие)`, value: discountAmt, show: discountAmt > 0, isDiscount: true },
     { label: `Наценка ${markup}% (на изделие)`, value: markupAmt, show: markupAmt > 0, accent: true },
   ].filter(r => r.show);
 
-  // КП без строки наценки, но итог с ней
+  // КП: без строки наценки (accent), скидку включаем если > 0
   const kpLineItems = lineItems.filter(r => !r.accent);
 
   const openKp = () => {
@@ -1305,6 +1328,8 @@ export default function Index() {
       isNonStd, lineItems: kpLineItems, subtotal, markup, markupAmt, total,
       gateArea, wicketArea, fillLabel: curFillLabel,
       fillSides, fillColor, fillColorName,
+      paintType, vendor,
+      discount, discountAmt,
       gateWeightTotal, wicketWeightTotal,
       swingDir,
       sketchSvg,
@@ -1413,10 +1438,16 @@ export default function Index() {
             {/* Form */}
             <div className="flex-1 min-w-0 space-y-3 animate-fade-in">
               {isNonStd && (
-                <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm animate-scale-in"
+                <div className="px-4 py-3 rounded-xl text-sm animate-scale-in"
                   style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.28)', color: '#F87171' }}>
-                  <Icon name="TriangleAlert" size={16} />
-                  <span>Нестандартный размер — надбавка <strong>+15%</strong></span>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Icon name="TriangleAlert" size={15} />
+                    <span className="font-semibold">Площадь {gateArea.toFixed(2)} м² превышает стандарт {STD_AREA} м²</span>
+                  </div>
+                  <div className="text-xs" style={{ color: '#FDA4A4' }}>
+                    Надбавка: +{Math.round((nonStdCoef - 1) * 100)}% за {extraArea.toFixed(2)} м² сверх нормы
+                    &nbsp;(+10% за каждый дополнительный м²) = <strong>+{fmt(nonStdAddAmt)}</strong>
+                  </div>
                 </div>
               )}
 
@@ -1689,6 +1720,50 @@ export default function Index() {
                 )}
               </div>
 
+              {/* 5б. Тип покраски */}
+              {fillSides !== 'none' && (
+                <div className="glass-card p-5">
+                  <SectionTitle icon="Paintbrush" title="Тип покраски" sub="Способ нанесения краски" />
+                  <div className="flex gap-2">
+                    {([
+                      { id: 'powder', label: 'Порошковая', sub: 'Долговечно, стойко' },
+                      { id: 'enamel', label: 'Эмаль', sub: 'Глянцевый эффект' },
+                    ] as const).map(opt => (
+                      <button key={opt.id} onClick={() => setPaintType(opt.id)}
+                        className="flex-1 p-3 rounded-xl text-left transition-all"
+                        style={{
+                          border: `1px solid ${paintType === opt.id ? 'rgba(10,132,255,0.55)' : 'var(--border-subtle)'}`,
+                          background: paintType === opt.id ? 'rgba(10,132,255,0.09)' : 'transparent',
+                        }}>
+                        <div className="text-xs font-semibold" style={{ color: paintType === opt.id ? 'var(--blue)' : 'var(--steel)' }}>{opt.label}</div>
+                        <div className="text-xs mt-0.5" style={{ color: 'var(--steel)' }}>{opt.sub}</div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* 5в. Производитель комплектующих */}
+              <div className="glass-card p-5">
+                <SectionTitle icon="Building2" title="Производитель" sub="Комплектующие и фурнитура" />
+                <div className="flex gap-2">
+                  {([
+                    { id: 'none',    label: 'Стандарт', sub: 'Без указания' },
+                    { id: 'alutech', label: 'Алютех', sub: 'Официальные комплектующие' },
+                  ] as const).map(opt => (
+                    <button key={opt.id} onClick={() => setVendor(opt.id)}
+                      className="flex-1 p-3 rounded-xl text-left transition-all"
+                      style={{
+                        border: `1px solid ${vendor === opt.id ? 'rgba(10,132,255,0.55)' : 'var(--border-subtle)'}`,
+                        background: vendor === opt.id ? 'rgba(10,132,255,0.09)' : 'transparent',
+                      }}>
+                      <div className="text-xs font-semibold" style={{ color: vendor === opt.id ? 'var(--blue)' : 'var(--steel)' }}>{opt.label}</div>
+                      <div className="text-xs mt-0.5" style={{ color: 'var(--steel)' }}>{opt.sub}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* 6. Монтаж */}
               <div className="glass-card p-5">
                 <SectionTitle icon="Wrench" title="6. Монтажные работы" />
@@ -1726,28 +1801,52 @@ export default function Index() {
                 </div>
               </div>
 
-              {/* 7. Наценка */}
+              {/* 7. Скидка + Наценка */}
               <div className="glass-card p-5">
-                <SectionTitle icon="Percent" title="7. Наценка" sub="Начисляется на изделие (без монтажа)" />
-                <div className="flex items-center gap-3">
-                  <div className="relative flex-1">
-                    <input type="number" className="field-input pr-8" value={markup === 0 ? '' : markup}
-                      onChange={e => setMarkup(Math.max(0, Math.min(200, Number(e.target.value) || 0)))}
-                      placeholder="0" min={0} max={200} step={1} />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold pointer-events-none" style={{ color: 'var(--steel)' }}>%</span>
-                  </div>
-                  {markup > 0 && (
-                    <div className="flex-shrink-0 px-3 py-2 rounded-lg text-sm font-mono font-semibold animate-fade-in"
-                      style={{ background: 'rgba(252,211,77,0.1)', border: '1px solid rgba(252,211,77,0.25)', color: '#FCD34D' }}>
-                      +{fmt(markupAmt)}
+                <SectionTitle icon="Tag" title="7. Скидка / Наценка" sub="Применяется к стоимости изделия" />
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Скидка */}
+                  <div>
+                    <FieldLabel>Скидка, %</FieldLabel>
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <input type="number" className="field-input pr-8" value={discount === 0 ? '' : discount}
+                          onChange={e => setDiscount(Math.max(0, Math.min(100, Number(e.target.value) || 0)))}
+                          placeholder="0" min={0} max={100} step={1} />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold pointer-events-none" style={{ color: 'var(--steel)' }}>%</span>
+                      </div>
+                      {discount > 0 && (
+                        <div className="flex-shrink-0 px-2 py-1.5 rounded-lg text-xs font-mono font-semibold animate-fade-in"
+                          style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)', color: '#22C55E' }}>
+                          -{fmt(discountAmt)}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
+                  {/* Наценка */}
+                  <div>
+                    <FieldLabel>Наценка, %</FieldLabel>
+                    <div className="flex items-center gap-2">
+                      <div className="relative flex-1">
+                        <input type="number" className="field-input pr-8" value={markup === 0 ? '' : markup}
+                          onChange={e => setMarkup(Math.max(0, Math.min(200, Number(e.target.value) || 0)))}
+                          placeholder="0" min={0} max={200} step={1} />
+                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold pointer-events-none" style={{ color: 'var(--steel)' }}>%</span>
+                      </div>
+                      {markup > 0 && (
+                        <div className="flex-shrink-0 px-2 py-1.5 rounded-lg text-xs font-mono font-semibold animate-fade-in"
+                          style={{ background: 'rgba(252,211,77,0.1)', border: '1px solid rgba(252,211,77,0.25)', color: '#FCD34D' }}>
+                          +{fmt(markupAmt)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                {markup > 0 && (
+                {(discount > 0 || markup > 0) && (
                   <div className="flex justify-between items-center mt-2 px-3 py-2 rounded-lg text-xs animate-fade-in"
                     style={{ background: 'var(--surface-3)', border: '1px solid var(--border-subtle)' }}>
-                    <span style={{ color: 'var(--steel)' }}>Сумма без наценки</span>
-                    <span className="font-mono" style={{ color: 'var(--steel)' }}>{fmt(subtotal)}</span>
+                    <span style={{ color: 'var(--steel)' }}>Итого с учётом корректировок</span>
+                    <span className="font-mono font-semibold" style={{ color: 'hsl(var(--foreground))' }}>{fmt(total)}</span>
                   </div>
                 )}
               </div>

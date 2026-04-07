@@ -66,7 +66,7 @@ function SectionTitle({ icon, title, sub }: { icon: string; title: string; sub?:
         <Icon name={icon} size={15} style={{ color: 'var(--blue)' }} />
       </div>
       <div>
-        <div className="text-sm font-semibold text-white leading-none">{title}</div>
+        <div className="text-sm font-semibold leading-none" style={{ color: 'hsl(var(--foreground))' }}>{title}</div>
         {sub && <div className="text-xs mt-0.5" style={{ color: 'var(--steel)' }}>{sub}</div>}
       </div>
     </div>
@@ -82,16 +82,16 @@ function CheckRow({ checked, onChange, label, price, disabled }: {
 }) {
   return (
     <label className={`flex items-center justify-between px-3 py-2.5 rounded-lg cursor-pointer transition-colors
-        ${disabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-white/5'}
-        ${checked && !disabled ? 'bg-white/5' : ''}`}
-      style={{ border: `1px solid ${checked && !disabled ? 'rgba(10,132,255,0.25)' : 'transparent'}` }}>
+        ${disabled ? 'opacity-40 cursor-not-allowed' : 'hover:bg-black/5'}
+        ${checked && !disabled ? 'bg-black/5' : ''}`}
+      style={{ border: `1px solid ${checked && !disabled ? 'rgba(26,109,224,0.25)' : 'transparent'}` }}>
       <div className="flex items-center gap-2.5">
         <div onClick={() => !disabled && onChange(!checked)}
           className="flex items-center justify-center transition-all flex-shrink-0 rounded"
           style={{ width: 16, height: 16, background: checked && !disabled ? 'var(--blue)' : 'transparent', border: `1.5px solid ${checked && !disabled ? 'var(--blue)' : '#4B5563'}` }}>
           {checked && !disabled && <Icon name="Check" size={10} className="text-white" />}
         </div>
-        <span className="text-sm text-gray-300">{label}</span>
+        <span className="text-sm" style={{ color: 'hsl(var(--foreground))' }}>{label}</span>
       </div>
       <span className="text-xs font-mono ml-2 flex-shrink-0" style={{ color: 'var(--green)' }}>+{fmt(price)}</span>
     </label>
@@ -129,9 +129,9 @@ function EditableRow({ item, onChange, onDelete, showDelete }: {
           <input autoFocus value={tmpLabel} onChange={e => setTmpLabel(e.target.value)}
             onBlur={commitLabel} onKeyDown={e => { if (e.key === 'Enter') commitLabel(); if (e.key === 'Escape') setMode('view'); }}
             className="w-full text-sm rounded px-2 py-0.5 outline-none"
-            style={{ background: 'var(--surface-3)', border: '1px solid var(--blue)', color: 'white' }} />
+            style={{ background: 'var(--surface-3)', border: '1px solid var(--blue)', color: 'hsl(var(--foreground))' }} />
         ) : (
-          <span className="text-sm cursor-pointer hover:text-white transition-colors flex items-center gap-1.5"
+          <span className="text-sm cursor-pointer transition-colors flex items-center gap-1.5"
             style={{ color: 'var(--steel)' }}
             onClick={() => { setTmpLabel(item.label); setMode('label'); }}>
             {item.label}
@@ -146,7 +146,7 @@ function EditableRow({ item, onChange, onDelete, showDelete }: {
             <input autoFocus value={tmpPrice} onChange={e => setTmpPrice(e.target.value)}
               onBlur={commitPrice} onKeyDown={e => { if (e.key === 'Enter') commitPrice(); if (e.key === 'Escape') setMode('view'); }}
               className="w-24 text-right font-mono text-sm rounded px-2 py-0.5 outline-none"
-              style={{ background: 'var(--surface-3)', border: '1px solid var(--blue)', color: 'white' }} />
+              style={{ background: 'var(--surface-3)', border: '1px solid var(--blue)', color: 'hsl(var(--foreground))' }} />
             <span className="text-xs" style={{ color: 'var(--steel)' }}>{item.suffix || '₽'}</span>
           </div>
         ) : (
@@ -189,10 +189,10 @@ function EditableSection({ title, items, suffix, onTitleChange, onItemChange, on
           <input autoFocus value={tmpTitle} onChange={e => setTmpTitle(e.target.value)}
             onBlur={commitTitle} onKeyDown={e => { if (e.key === 'Enter') commitTitle(); if (e.key === 'Escape') setEditTitle(false); }}
             className="text-xs font-bold rounded px-2 py-0.5 outline-none tracking-widest uppercase w-full mr-2"
-            style={{ background: 'var(--surface-3)', border: '1px solid var(--blue)', color: 'white' }} />
+            style={{ background: 'var(--surface-3)', border: '1px solid var(--blue)', color: 'hsl(var(--foreground))' }} />
         ) : (
           <div className="flex items-center gap-2 cursor-pointer" onClick={() => { setTmpTitle(title); setEditTitle(true); }}>
-            <span className="text-xs font-bold text-white tracking-widest">{title}</span>
+            <span className="text-xs font-bold tracking-widest" style={{ color: 'hsl(var(--foreground))' }}>{title}</span>
             <Icon name="Pencil" size={10} className="opacity-0 group-hover/head:opacity-50 transition-opacity" style={{ color: 'var(--blue)' }} />
           </div>
         )}
@@ -229,7 +229,7 @@ function PriceRow({ label, value, onChange, suffix }: {
         <input ref={inp} autoFocus type="text" value={tmp} onChange={e => setTmp(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') commit(); if (e.key === 'Escape') setEditing(false); }}
           className="w-28 text-right font-mono text-sm rounded px-2 py-0.5 outline-none"
-          style={{ background: 'var(--surface-3)', border: '1px solid var(--blue)', color: 'white' }} />
+          style={{ background: 'var(--surface-3)', border: '1px solid var(--blue)', color: 'hsl(var(--foreground))' }} />
         <span className="text-xs" style={{ color: 'var(--steel)' }}>{suffix || '₽'}</span>
         <button onClick={commit} className="ml-1 p-0.5 rounded" style={{ color: 'var(--green)' }}><Icon name="Check" size={13} /></button>
         <button onClick={() => setEditing(false)} className="p-0.5 rounded" style={{ color: '#F87171' }}><Icon name="X" size={13} /></button>
@@ -316,7 +316,7 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
         <tr><td>Тип ворот</td><td>${data.gateType === 'sliding' ? 'Откатные' : data.gateType === 'swing' ? 'Распашные' : 'Распашные с калиткой'}</td></tr>
         <tr class="tr-alt"><td>Размер</td><td>${(data.gateW/1000).toFixed(2)} м × ${(data.gateH/1000).toFixed(2)} м</td></tr>
         <tr><td>Площадь</td><td>${data.gateArea.toFixed(2)} м²${data.hasWicket ? ` + ${data.wicketArea.toFixed(2)} м² (калитка)` : ''}</td></tr>
-        ${data.isNonStd ? `<tr class="tr-alt"><td>Надбавка нестандарт</td><td>+5%</td></tr>` : ''}
+        ${data.isNonStd ? `<tr class="tr-alt"><td>Надбавка нестандарт</td><td>+15%</td></tr>` : ''}
         ${data.hasWicket ? `<tr><td>Калитка</td><td>${(data.wicketW/1000).toFixed(2)} м × ${(data.wicketH/1000).toFixed(2)} м</td></tr>` : ''}
         ${data.autoLabel !== 'Без автоматики' ? `<tr class="tr-alt"><td>Автоматика</td><td>${data.autoLabel}</td></tr>` : ''}
         ${data.extras.map((e,i) => `<tr${i%2===0?' class="tr-alt"':''}><td>Доп. опция</td><td>${e}</td></tr>`).join('')}
@@ -425,7 +425,7 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
                   { label: 'Тип ворот', val: data.gateType === 'sliding' ? 'Откатные' : data.gateType === 'swing' ? 'Распашные' : 'Распашные с калиткой' },
                   { label: 'Размер', val: `${(data.gateW/1000).toFixed(2)} м × ${(data.gateH/1000).toFixed(2)} м` },
                   { label: 'Площадь', val: `${data.gateArea.toFixed(2)} м²${data.hasWicket ? ` + ${data.wicketArea.toFixed(2)} м² (калитка)` : ''}` },
-                  ...(data.isNonStd ? [{ label: 'Надбавка', val: 'Нестандартный размер +5%' }] : []),
+                  ...(data.isNonStd ? [{ label: 'Надбавка', val: 'Нестандартный размер +15%' }] : []),
                   ...(data.hasWicket ? [{ label: 'Калитка', val: `${(data.wicketW/1000).toFixed(2)} × ${(data.wicketH/1000).toFixed(2)} м` }] : []),
                   { label: 'Заполнение', val: data.fillLabel },
                   ...(data.autoLabel !== 'Без автоматики' ? [{ label: 'Автоматика', val: data.autoLabel }] : []),
@@ -526,7 +526,7 @@ function AuthModal({ onClose, onLogin }: { onClose: () => void; onLogin: (user: 
         style={{ background: 'var(--surface-2)', border: '1px solid var(--border-subtle)', boxShadow: '0 32px 80px rgba(0,0,0,0.5)' }}>
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-lg font-bold text-white">{isReg ? 'Регистрация' : 'Вход'}</h2>
+            <h2 className="text-lg font-bold" style={{ color: 'hsl(var(--foreground))' }}>{isReg ? 'Регистрация' : 'Вход'}</h2>
             <p className="text-xs mt-0.5" style={{ color: 'var(--steel)' }}>через электронную почту</p>
           </div>
           <button onClick={onClose} style={{ color: 'var(--steel)' }}><Icon name="X" size={16} /></button>
@@ -565,20 +565,17 @@ function AuthModal({ onClose, onLogin }: { onClose: () => void; onLogin: (user: 
 }
 
 // ─── AutoDropdown ─────────────────────────────────────────────────────────────
-function AutoDropdown({ autoId, setAutoId, autoItems, extraItems, extras, toggleExtra }: {
+function AutoDropdown({ autoId, setAutoId, filteredOpts, extraItems, extras, toggleExtra }: {
   autoId: string;
   setAutoId: (id: string) => void;
-  autoItems: EditItem[];
+  filteredOpts: { id: string; label: string; price: number }[];
   extraItems: EditItem[];
   extras: Set<string>;
   toggleExtra: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
-  const allOpts = [
-    { id: 'none', label: 'Без автоматики', price: 0 },
-    ...autoItems.map(i => ({ id: i.id, label: i.label, price: i.price })),
-  ];
+  const allOpts = filteredOpts;
   const selected = allOpts.find(o => o.id === autoId) ?? allOpts[0];
 
   useEffect(() => {
@@ -600,8 +597,8 @@ function AutoDropdown({ autoId, setAutoId, autoItems, extraItems, extras, toggle
           style={{
             background: 'var(--surface-3)',
             border: `1px solid ${open ? 'var(--blue)' : 'var(--border-subtle)'}`,
-            color: 'white',
-            boxShadow: open ? '0 0 0 3px rgba(10,132,255,0.12)' : 'none',
+            color: 'hsl(var(--foreground))',
+            boxShadow: open ? '0 0 0 3px rgba(26,109,224,0.12)' : 'none',
           }}
         >
           <span className="flex-1 text-left truncate pr-2">{selected.label}</span>
@@ -634,15 +631,15 @@ function AutoDropdown({ autoId, setAutoId, autoItems, extraItems, extras, toggle
                   background: autoId === o.id ? 'rgba(10,132,255,0.12)' : 'transparent',
                   borderBottom: i < allOpts.length - 1 ? '1px solid var(--border-subtle)' : 'none',
                 }}
-                onMouseEnter={e => { if (autoId !== o.id) e.currentTarget.style.background = 'rgba(255,255,255,0.04)'; }}
+                onMouseEnter={e => { if (autoId !== o.id) e.currentTarget.style.background = 'rgba(0,0,0,0.03)'; }}
                 onMouseLeave={e => { if (autoId !== o.id) e.currentTarget.style.background = 'transparent'; }}
               >
-                <span className="text-sm pr-3 text-left" style={{ color: autoId === o.id ? 'white' : '#9CA3AF' }}>
+                <span className="text-sm pr-3 text-left" style={{ color: autoId === o.id ? 'var(--blue)' : 'hsl(var(--foreground))' }}>
                   {o.label}
                 </span>
                 <div className="flex items-center gap-2 flex-shrink-0">
                   {o.price > 0 && (
-                    <span className="font-mono text-xs" style={{ color: autoId === o.id ? 'var(--green)' : '#4B5563' }}>
+                    <span className="font-mono text-xs" style={{ color: autoId === o.id ? 'var(--green)' : 'var(--steel)' }}>
                       {fmt(o.price)}
                     </span>
                   )}
@@ -721,6 +718,16 @@ export default function Index() {
   const [markup, setMarkup]       = useState(0);
   const [isOpen, setIsOpen]       = useState(false);
   const [activeTab, setActiveTab] = useState<'calc' | 'history' | 'users' | 'admin'>('calc');
+
+  // Вес ворот
+  const [steelWeightM2, setSteelWeightM2] = useState(25); // кг/м² стальной каркас
+  const [fillWeightM2, setFillWeightM2]   = useState(5);  // кг/м² заполнение (зависит от типа)
+  // Направление распашных (внутрь/наружу)
+  const [swingDir, setSwingDir] = useState<'inward' | 'outward'>('outward');
+  // Тип заполнения по количеству сторон
+  const [fillSides, setFillSides] = useState<'none' | 'single' | 'double'>('single');
+  // Доп. работы (ручной ввод)
+  const [customWorks, setCustomWorks] = useState<{id: string; label: string; price: number}[]>([]);
 
   // Auth
   const [user, setUser]       = useState<{ id: number; name: string; email: string } | null>(() => {
@@ -810,6 +817,16 @@ export default function Index() {
     } catch (e) { /* ignore */ }
   }, [secTitles, gateItems, fillItems, installItems, extraItems, autoItems]);
 
+  useEffect(() => {
+    // При смене типа ворот — сбрасываем автоматику если она не подходит
+    const isSwing = gateType === 'swing' || gateType === 'swing_wicket' || gateType === 'accordion';
+    const src = AUTOMATION_OPTIONS.find(o => o.id === autoId);
+    if (src && src.type !== 'any') {
+      const compatible = isSwing ? src.type === 'swing' : src.type === 'sliding';
+      if (!compatible) setAutoId('none');
+    }
+  }, [gateType]);
+
   // Обёртки с сохранением
   const setSecTitles  = (fn: (s: Record<string,string>) => Record<string,string>) => setSecTitlesRaw(fn);
   const setGateItems  = (fn: (p: EditItem[]) => EditItem[]) => setGateItemsRaw(fn);
@@ -850,25 +867,41 @@ export default function Index() {
   const makeId = () => Math.random().toString(36).slice(2, 8);
 
   // Calcs — всё из динамических items
-  const isNonStd   = gateW > 5000 || gateH > 2500;
+  const isNonStd   = gateW > 4000 || gateH > 2200;
+  const nonStdCoef = isNonStd ? 1.15 : 1; // +15% для нестандарта
   const gateArea   = (gateW * gateH) / 1e6;
   const wicketArea = hasWicket ? (wicketW * wicketH) / 1e6 : 0;
   const totalArea  = gateArea + wicketArea;
   const curGatePrice = gateTypePrices[gateType] ?? gateItemMap[gateType]?.price ?? 0;
-  const baseGate   = curGatePrice * (isNonStd ? 1.05 : 1);
+  const baseGate   = curGatePrice * nonStdCoef;
   const wicketPr   = hasWicket ? wicketPrice : 0;
 
-  // Автоматика — все позиции из autoItems + «Без автоматики»
-  const allAutoOpts = [
-    { id: 'none', label: 'Без автоматики', price: 0 },
-    ...autoItems.map(i => ({ id: i.id, label: i.label, price: i.price })),
-  ];
+  // Автоматика — фильтрация по типу ворот
+  const isSwingType = gateType === 'swing' || gateType === 'swing_wicket' || gateType === 'accordion';
+  type AutoOpt = { id: string; label: string; price: number; type: string };
+  const allAutoOpts: AutoOpt[] = [
+    { id: 'none', label: 'Без автоматики', price: 0, type: 'any' },
+    ...autoItems.map(i => {
+      // Определяем тип из названия (sliding/swing)
+      const src = AUTOMATION_OPTIONS.find(o => o.id === i.id);
+      const typ = src?.type ?? 'any';
+      return { id: i.id, label: i.label, price: i.price, type: typ };
+    }),
+  ].filter(o => o.id === 'none' || o.type === 'any' || (isSwingType ? o.type === 'swing' : o.type === 'sliding'));
   const autoOpt = allAutoOpts.find(o => o.id === autoId) ?? allAutoOpts[0];
+  // Сброс выбора если не подходит текущему типу
   const autoPr  = autoOpt.price;
 
   // Заполнение — из fillItems
   const curFillItem = fillItems.find(i => i.id === fillType);
   const fillPr  = getFillPrice(fillType) * totalArea;
+
+  // Вес ворот
+  const fillSidesCoef = fillSides === 'double' ? 2 : fillSides === 'none' ? 0 : 1;
+  const gateWeight = Math.round(gateArea * steelWeightM2 + gateArea * fillWeightM2 * fillSidesCoef);
+  const wicketWeight = hasWicket ? Math.round(wicketArea * steelWeightM2 + wicketArea * fillWeightM2 * fillSidesCoef) : 0;
+  // Цена заполнения с учётом сторон
+  const fillPrActual = fillSides === 'none' ? 0 : fillPr * fillSidesCoef;
 
   // Доптовары — из extraItems
   const extrasPr = [...extras].reduce((s, id) => s + (extraItems.find(o => o.id === id)?.price ?? 0), 0);
@@ -878,9 +911,11 @@ export default function Index() {
   const instGatePr = installGate  ? instGate : 0;
   const instFrmPr  = installFrame ? instFrame : 0;
   const instWkPr   = (hasWicket && installWicket) ? instWicket : 0;
-  const subtotal   = baseGate + wicketPr + autoPr + fillPr + extrasPr + instAutoPr + instFillPr + instGatePr + instFrmPr + instWkPr;
-  const markupAmt  = markup > 0 ? Math.round(subtotal * markup / 100) : 0;
-  const total      = subtotal + markupAmt;
+  const installTotal = instAutoPr + instFillPr + instGatePr + instFrmPr + instWkPr + customWorks.reduce((s, w) => s + w.price, 0);
+  const productTotal = baseGate + wicketPr + autoPr + fillPrActual + extrasPr;
+  const subtotal     = productTotal + installTotal;
+  const markupAmt    = markup > 0 ? Math.round(productTotal * markup / 100) : 0;
+  const total        = subtotal + markupAmt;
 
   const toggleExtra = useCallback((id: string) => {
     setExtras(prev => { const n = new Set(prev); if (n.has(id)) { n.delete(id); } else { n.add(id); } return n; });
@@ -898,20 +933,21 @@ export default function Index() {
   // Имена типов ворот из gateItems
   const gateTypeLabel = gateItems.find(i => i.id === gateType)?.label ?? gateType;
 
-  type LineItem = { label: string; value: number; show: boolean; warn?: boolean; accent?: boolean };
+  type LineItem = { label: string; value: number; show: boolean; warn?: boolean; accent?: boolean; isInstall?: boolean };
   const lineItems: LineItem[] = [
     { label: `Ворота: ${gateTypeLabel}`, value: curGatePrice, show: true },
-    { label: 'Надбавка нестандарт +5%', value: Math.round(curGatePrice * 0.05), show: isNonStd, warn: true },
+    { label: 'Надбавка нестандарт +15%', value: Math.round(curGatePrice * 0.15), show: isNonStd, warn: true },
     { label: `Калитка (${gateItems.find(i=>i.id==='wicket')?.label ?? 'калитка'})`, value: wicketPr, show: hasWicket },
     { label: autoOpt.label, value: autoPr, show: autoPr > 0 },
-    { label: `Заполнение: ${curFillLabel}`, value: Math.round(fillPr), show: fillPr > 0 },
+    { label: `Заполнение: ${curFillLabel}${fillSides === 'double' ? ' (2х)' : fillSides === 'none' ? ' (без)' : ''}`, value: Math.round(fillPrActual), show: true },
     ...[...extras].map(id => { const e = extraItems.find(o => o.id === id); return { label: e?.label ?? id, value: e?.price ?? 0, show: true }; }),
-    { label: instAutoLabel,   value: instAutoPr,            show: installAuto },
-    { label: instFillLabel,   value: Math.round(instFillPr), show: installFill },
-    { label: instGateLabel,   value: instGatePr,            show: installGate },
-    { label: instFrameLabel,  value: instFrmPr,             show: installFrame },
-    { label: instWicketLabel, value: instWkPr,              show: installWicket && hasWicket },
-    { label: `Наценка ${markup}%`, value: markupAmt, show: markupAmt > 0, accent: true },
+    { label: instAutoLabel,   value: instAutoPr,             show: installAuto,                  isInstall: true },
+    { label: instFillLabel,   value: Math.round(instFillPr), show: installFill,                  isInstall: true },
+    { label: instGateLabel,   value: instGatePr,             show: installGate,                  isInstall: true },
+    { label: instFrameLabel,  value: instFrmPr,              show: installFrame,                 isInstall: true },
+    { label: instWicketLabel, value: instWkPr,               show: installWicket && hasWicket,   isInstall: true },
+    ...customWorks.map(w => ({ label: w.label, value: w.price, show: true, isInstall: true })),
+    { label: `Наценка ${markup}% (на изделие)`, value: markupAmt, show: markupAmt > 0, accent: true },
   ].filter(r => r.show);
 
   // КП без строки наценки, но итог с ней
@@ -992,7 +1028,7 @@ export default function Index() {
               style={{ background: 'var(--blue)', boxShadow: '0 0 14px rgba(10,132,255,0.45)' }}>
               <Icon name="SquareDashedKanban" size={14} className="text-white" />
             </div>
-            <span className="font-bold text-white text-sm tracking-wider">МЕТАЛЛКОНСТРУКТОР</span>
+            <span className="font-bold text-sm tracking-wider" style={{ color: 'hsl(var(--foreground))' }}>МЕТАЛЛКОНСТРУКТОР</span>
             <span className="hidden sm:inline text-xs px-2 py-0.5 rounded font-mono"
               style={{ background: 'rgba(10,132,255,0.1)', color: 'var(--blue)', border: '1px solid rgba(10,132,255,0.22)' }}>BETA</span>
           </div>
@@ -1007,7 +1043,7 @@ export default function Index() {
               <button key={tab.id}
                 onClick={() => setActiveTab(tab.id as 'calc' | 'history' | 'users' | 'admin')}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all"
-                style={activeTab === tab.id ? { background: 'rgba(10,132,255,0.15)', color: 'var(--blue)' } : { color: '#6B7280' }}>
+                style={activeTab === tab.id ? { background: 'rgba(10,132,255,0.15)', color: 'var(--blue)' } : { color: 'var(--steel)' }}>
                 <Icon name={tab.icon} size={13} />
                 <span className="hidden sm:inline">{tab.label}</span>
               </button>
@@ -1027,7 +1063,7 @@ export default function Index() {
             <button onClick={() => setShowAuth(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
               style={{ border: '1px solid var(--border-subtle)', color: 'var(--steel)', background: 'transparent' }}
-              onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-3)')}
               onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
               <Icon name="User" size={13} />
               <span className="hidden sm:inline">Войти</span>
@@ -1047,7 +1083,7 @@ export default function Index() {
                 <div className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm animate-scale-in"
                   style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.28)', color: '#F87171' }}>
                   <Icon name="TriangleAlert" size={16} />
-                  <span>Нестандартный размер — надбавка <strong>+5%</strong></span>
+                  <span>Нестандартный размер — надбавка <strong>+15%</strong></span>
                 </div>
               )}
 
@@ -1067,7 +1103,27 @@ export default function Index() {
                 <div className="flex justify-between items-center mt-3 px-3 py-2 rounded-lg"
                   style={{ background: 'var(--surface-3)', border: '1px solid var(--border-subtle)' }}>
                   <span className="text-xs" style={{ color: 'var(--steel)' }}>Площадь полотна</span>
-                  <span className="font-mono text-sm text-white">{gateArea.toFixed(2)} м²</span>
+                  <span className="font-mono text-sm" style={{ color: 'hsl(var(--foreground))' }}>{gateArea.toFixed(2)} м²</span>
+                </div>
+                {/* Вес ворот */}
+                <div className="grid grid-cols-2 gap-2 mt-2">
+                  <div>
+                    <FieldLabel>Каркас, кг/м²</FieldLabel>
+                    <input type="number" className="field-input" value={steelWeightM2}
+                      onChange={e => setSteelWeightM2(Math.max(1, +e.target.value))} min={1} max={100} step={1} />
+                  </div>
+                  <div>
+                    <FieldLabel>Заполнение, кг/м²</FieldLabel>
+                    <input type="number" className="field-input" value={fillWeightM2}
+                      onChange={e => setFillWeightM2(Math.max(0, +e.target.value))} min={0} max={50} step={0.5} />
+                  </div>
+                </div>
+                <div className="flex justify-between items-center px-3 py-2 rounded-lg mt-2"
+                  style={{ background: 'rgba(10,112,232,0.06)', border: '1px solid rgba(10,112,232,0.18)' }}>
+                  <span className="text-xs font-medium" style={{ color: 'var(--blue)' }}>Расчётный вес полотна</span>
+                  <span className="font-mono text-sm font-bold" style={{ color: 'var(--blue)' }}>
+                    ~{gateWeight} кг{hasWicket ? ` + ${wicketWeight} кг (калитка)` : ''}
+                  </span>
                 </div>
               </div>
 
@@ -1082,23 +1138,56 @@ export default function Index() {
                     return (
                       <button key={t} onClick={() => setGateType(t)}
                         className="p-3 rounded-xl text-left transition-all"
-                        style={{ border: `1px solid ${gateType === t ? 'rgba(10,132,255,0.55)' : 'rgba(255,255,255,0.07)'}`, background: gateType === t ? 'rgba(10,132,255,0.09)' : 'transparent' }}>
+                        style={{ border: `1px solid ${gateType === t ? 'rgba(10,132,255,0.55)' : 'var(--border-subtle)'}`, background: gateType === t ? 'rgba(10,132,255,0.09)' : 'transparent' }}>
                         <div className="flex items-center gap-2 mb-1.5">
                           <Icon name={iconMap[item.id] ?? 'DoorOpen'} size={13}
                             style={{ color: gateType === t ? 'var(--blue)' : 'var(--steel)' }} />
-                          <span className="text-xs font-semibold" style={{ color: gateType === t ? 'var(--blue)' : '#9CA3AF' }}>{item.label}</span>
+                          <span className="text-xs font-semibold" style={{ color: gateType === t ? 'var(--blue)' : 'var(--steel)' }}>{item.label}</span>
                         </div>
-                        <div className="font-mono text-sm font-bold" style={{ color: gateType === t ? 'var(--green)' : '#374151' }}>{fmt(p)}</div>
+                        <div className="font-mono text-sm font-bold" style={{ color: gateType === t ? 'var(--green)' : 'var(--steel)' }}>{fmt(p)}</div>
                       </button>
                     );
                   })}
                 </div>
               </div>
 
-              {/* 3. Калитка */}
+              {/* Направление открытия */}
+              {(gateType === 'swing' || gateType === 'swing_wicket') && (
+                <div className="glass-card p-5 animate-fade-in">
+                  <SectionTitle icon="ArrowLeftRight" title="3. Направление открытия" sub="Распашные ворота" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <FieldLabel>Сторона петель</FieldLabel>
+                      <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
+                        {(['left','right'] as OpenDir[]).map(d => (
+                          <button key={d} onClick={() => setOpenDir(d)}
+                            className="flex-1 py-2 text-xs font-medium transition-all"
+                            style={{ background: openDir === d ? 'var(--blue)' : 'transparent', color: openDir === d ? 'white' : 'var(--steel)' }}>
+                            {d === 'left' ? '← Левая' : 'Правая →'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <FieldLabel>Направление</FieldLabel>
+                      <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--border-subtle)' }}>
+                        {(['outward','inward'] as const).map(d => (
+                          <button key={d} onClick={() => setSwingDir(d)}
+                            className="flex-1 py-2 text-xs font-medium transition-all"
+                            style={{ background: swingDir === d ? 'var(--blue)' : 'transparent', color: swingDir === d ? 'white' : 'var(--steel)' }}>
+                            {d === 'outward' ? 'Наружу' : 'Внутрь'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 3/4. Калитка */}
               <div className="glass-card p-5">
                 <div className="flex items-center justify-between">
-                  <SectionTitle icon="Fence" title="3. Калитка" sub={`Дополнительно ${fmt(wicketPrice)}`} />
+                  <SectionTitle icon="Fence" title="Калитка" sub={`Дополнительно ${fmt(wicketPrice)}`} />
                   <button onClick={() => setHasWicket(v => !v)} className="relative flex-shrink-0 transition-all"
                     style={{ width: 42, height: 23, borderRadius: 99, background: hasWicket ? 'var(--blue)' : 'var(--surface-4)', border: `1px solid ${hasWicket ? 'var(--blue)' : 'var(--border-subtle)'}`, boxShadow: hasWicket ? '0 0 10px rgba(10,132,255,0.3)' : 'none' }}>
                     <div className="absolute rounded-full bg-white transition-all" style={{ width: 17, height: 17, top: 2, left: hasWicket ? 22 : 2 }} />
@@ -1119,7 +1208,7 @@ export default function Index() {
                     <div className="flex justify-between items-center px-3 py-2 rounded-lg"
                       style={{ background: 'var(--surface-3)', border: '1px solid var(--border-subtle)' }}>
                       <span className="text-xs" style={{ color: 'var(--steel)' }}>Площадь калитки</span>
-                      <span className="font-mono text-sm text-white">{wicketArea.toFixed(2)} м²</span>
+                      <span className="font-mono text-sm" style={{ color: 'hsl(var(--foreground))' }}>{wicketArea.toFixed(2)} м²</span>
                     </div>
                   </div>
                 )}
@@ -1129,7 +1218,7 @@ export default function Index() {
               <AutoDropdown
                 autoId={autoId}
                 setAutoId={setAutoId}
-                autoItems={autoItems}
+                filteredOpts={allAutoOpts}
                 extraItems={extraItems}
                 extras={extras}
                 toggleExtra={toggleExtra}
@@ -1177,9 +1266,27 @@ export default function Index() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-3">
                   {fillItems.map(item => (
                     <button key={item.id} onClick={() => setFillType(item.id)} className="p-2.5 rounded-lg text-left transition-all"
-                      style={{ border: `1px solid ${fillType === item.id ? 'rgba(10,132,255,0.5)' : 'rgba(255,255,255,0.06)'}`, background: fillType === item.id ? 'rgba(10,132,255,0.08)' : 'transparent' }}>
-                      <div className="text-xs font-medium" style={{ color: fillType === item.id ? 'var(--blue)' : '#9CA3AF' }}>{item.label}</div>
+                      style={{ border: `1px solid ${fillType === item.id ? 'rgba(10,132,255,0.5)' : 'var(--border-subtle)'}`, background: fillType === item.id ? 'rgba(10,132,255,0.08)' : 'transparent' }}>
+                      <div className="text-xs font-medium" style={{ color: fillType === item.id ? 'var(--blue)' : 'var(--steel)' }}>{item.label}</div>
                       <div className="text-xs font-mono mt-0.5" style={{ color: 'var(--steel)' }}>{item.price.toLocaleString('ru-RU')} ₽/м²</div>
+                    </button>
+                  ))}
+                </div>
+                {/* Сторонность заполнения */}
+                <div className="flex gap-2 mb-3">
+                  {([
+                    { id: 'none',   label: 'Без заполнения' },
+                    { id: 'single', label: 'Одностороннее' },
+                    { id: 'double', label: 'Двухстороннее' },
+                  ] as const).map(opt => (
+                    <button key={opt.id} onClick={() => setFillSides(opt.id)}
+                      className="flex-1 py-2 rounded-lg text-xs font-medium transition-all"
+                      style={{
+                        border: `1px solid ${fillSides === opt.id ? 'rgba(10,132,255,0.5)' : 'var(--border-subtle)'}`,
+                        background: fillSides === opt.id ? 'rgba(10,132,255,0.1)' : 'transparent',
+                        color: fillSides === opt.id ? 'var(--blue)' : 'var(--steel)',
+                      }}>
+                      {opt.label}
                     </button>
                   ))}
                 </div>
@@ -1188,7 +1295,7 @@ export default function Index() {
                   <span className="text-xs" style={{ color: 'var(--steel)' }}>
                     {getFillPrice(fillType).toLocaleString('ru-RU')} ₽/м² × {totalArea.toFixed(2)} м²
                   </span>
-                  <span className="font-mono text-sm price-tag">{fmt(fillPr)}</span>
+                  <span className="font-mono text-sm price-tag">{fmt(fillPrActual)}</span>
                 </div>
               </div>
 
@@ -1202,11 +1309,36 @@ export default function Index() {
                   <CheckRow checked={installFrame} onChange={setInstallFrame} label={instFrameLabel} price={instFrame} />
                   {hasWicket && <CheckRow checked={installWicket} onChange={setInstallWicket} label={instWicketLabel} price={instWicket} />}
                 </div>
+                {/* Доп. работы */}
+                <div className="mt-3 pt-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
+                  <div className="text-xs font-semibold mb-2" style={{ color: 'var(--steel)' }}>Дополнительные работы</div>
+                  {customWorks.map(w => (
+                    <div key={w.id} className="flex items-center gap-2 mb-1.5">
+                      <input type="text" className="field-input flex-1" style={{ fontSize: 12, padding: '6px 10px' }}
+                        value={w.label} onChange={e => setCustomWorks(prev => prev.map(x => x.id === w.id ? {...x, label: e.target.value} : x))}
+                        placeholder="Название работы" />
+                      <input type="number" className="field-input" style={{ width: 110, fontSize: 12, padding: '6px 10px' }}
+                        value={w.price} onChange={e => setCustomWorks(prev => prev.map(x => x.id === w.id ? {...x, price: +e.target.value} : x))}
+                        placeholder="Цена" min={0} />
+                      <button onClick={() => setCustomWorks(prev => prev.filter(x => x.id !== w.id))}
+                        className="flex-shrink-0 p-1.5 rounded-lg transition-all"
+                        style={{ color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', background: 'transparent' }}>
+                        <Icon name="X" size={12} />
+                      </button>
+                    </div>
+                  ))}
+                  <button onClick={() => setCustomWorks(prev => [...prev, { id: Math.random().toString(36).slice(2,8), label: '', price: 0 }])}
+                    className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-all mt-1"
+                    style={{ border: '1px solid var(--border-subtle)', color: 'var(--steel)', background: 'transparent' }}>
+                    <Icon name="Plus" size={12} />
+                    Добавить работу
+                  </button>
+                </div>
               </div>
 
               {/* 7. Наценка */}
               <div className="glass-card p-5">
-                <SectionTitle icon="Percent" title="7. Наценка" sub="Добавляется к итоговой сумме" />
+                <SectionTitle icon="Percent" title="7. Наценка" sub="Начисляется на изделие (без монтажа)" />
                 <div className="flex items-center gap-3">
                   <div className="relative flex-1">
                     <input type="number" className="field-input pr-8" value={markup === 0 ? '' : markup}
@@ -1238,7 +1370,7 @@ export default function Index() {
               <div className="glass-card overflow-hidden animate-slide-in">
                 <div className="flex items-center justify-between px-4 py-2.5"
                   style={{ borderBottom: '1px solid var(--border-subtle)' }}>
-                  <span className="text-xs font-bold text-white tracking-widest">ЭСКИЗ</span>
+                  <span className="text-xs font-bold tracking-widest" style={{ color: 'hsl(var(--foreground))' }}>ЭСКИЗ</span>
                   <button onClick={() => setIsOpen(v => !v)}
                     className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs transition-all"
                     style={{ border: '1px solid var(--border-subtle)', color: isOpen ? 'var(--green)' : 'var(--steel)', background: isOpen ? 'rgba(34,197,94,0.08)' : 'transparent' }}>
@@ -1261,21 +1393,33 @@ export default function Index() {
 
               {/* Total */}
               <div className="glass-card p-4 animate-slide-in" style={{ animationDelay: '0.08s' }}>
-                <div className="text-xs font-bold text-white tracking-widest mb-3">РАСЧЁТ</div>
+                <div className="text-xs font-bold tracking-widest mb-3" style={{ color: 'hsl(var(--foreground))' }}>РАСЧЁТ</div>
                 <div className="space-y-2 mb-3">
-                  {lineItems.map((row, i) => (
-                    <div key={i} className="flex items-start gap-2 text-xs">
-                      <span className="flex-1 leading-relaxed" style={{ color: row.warn ? '#F87171' : row.accent ? '#FCD34D' : 'var(--steel)' }}>
-                        {row.label}
-                      </span>
-                      <span className="font-mono flex-shrink-0" style={{ color: row.warn ? '#F87171' : row.accent ? '#FCD34D' : '#6B7280' }}>
-                        {fmt(row.value)}
-                      </span>
-                    </div>
-                  ))}
+                  {(() => {
+                    let shownInstall = false;
+                    return lineItems.map((row, i) => {
+                      const isFirst = !shownInstall && row.isInstall;
+                      if (row.isInstall) shownInstall = true;
+                      return (
+                        <React.Fragment key={i}>
+                          {isFirst && (
+                            <div className="text-xs font-bold mt-2 mb-1 tracking-widest" style={{ color: 'var(--steel)', opacity: 0.6 }}>МОНТАЖ</div>
+                          )}
+                          <div className="flex items-start gap-2 text-xs">
+                            <span className="flex-1 leading-relaxed" style={{ color: row.warn ? '#ef4444' : row.accent ? '#d97706' : row.isInstall ? '#64748b' : 'var(--steel)' }}>
+                              {row.label}
+                            </span>
+                            <span className="font-mono flex-shrink-0" style={{ color: row.warn ? '#ef4444' : row.accent ? '#d97706' : row.isInstall ? 'var(--steel)' : 'hsl(var(--foreground))' }}>
+                              {fmt(row.value)}
+                            </span>
+                          </div>
+                        </React.Fragment>
+                      );
+                    });
+                  })()}
                 </div>
                 <div className="flex items-center justify-between py-3" style={{ borderTop: '1px solid var(--border-subtle)' }}>
-                  <span className="text-sm font-bold text-white">Итого</span>
+                  <span className="text-sm font-bold" style={{ color: 'hsl(var(--foreground))' }}>Итого</span>
                   <span className="text-2xl font-bold font-mono" style={{ color: 'var(--green)' }}>{fmt(total)}</span>
                 </div>
                 <button onClick={openKp}
@@ -1291,7 +1435,7 @@ export default function Index() {
                 <button onClick={savePdf}
                   className="w-full py-2.5 rounded-xl text-xs font-medium transition-all"
                   style={{ border: '1px solid var(--border-subtle)', color: 'var(--steel)', background: 'transparent' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.04)')}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--surface-3)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
                   <span className="flex items-center justify-center gap-2">
                     <Icon name="Download" size={12} />
@@ -1314,7 +1458,7 @@ export default function Index() {
                 <Icon name="History" size={15} style={{ color: 'var(--blue)' }} />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white">История расчётов</h2>
+                <h2 className="text-lg font-bold" style={{ color: 'hsl(var(--foreground))' }}>История расчётов</h2>
                 <p className="text-xs" style={{ color: 'var(--steel)' }}>
                   {remoteHistory.length > 0 ? `${remoteHistory.length} КП от всех пользователей` : 'Загрузка...'}
                 </p>
@@ -1334,7 +1478,7 @@ export default function Index() {
                 style={{ background: 'var(--surface-3)', border: '1px solid var(--border-subtle)' }}>
                 <Icon name="FileText" size={24} style={{ color: 'var(--steel)' }} />
               </div>
-              <p className="text-sm font-medium text-white mb-1">Расчётов пока нет</p>
+              <p className="text-sm font-medium mb-1" style={{ color: 'hsl(var(--foreground))' }}>Расчётов пока нет</p>
               <p className="text-xs" style={{ color: 'var(--steel)' }}>
                 Нажмите «Создать КП» на вкладке калькулятора — расчёт появится здесь у всех
               </p>
@@ -1356,7 +1500,7 @@ export default function Index() {
                       <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <div className="flex items-center gap-1.5">
                           <div className="w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
-                            style={{ background: kp.user_name ? 'var(--blue)' : '#374151', fontSize: 9 }}>
+                            style={{ background: kp.user_name ? 'var(--blue)' : 'var(--steel)', fontSize: 9 }}>
                             {kp.user_name ? kp.user_name[0].toUpperCase() : '?'}
                           </div>
                           <span className="text-xs font-medium" style={{ color: kp.user_name ? 'var(--blue)' : 'var(--steel)' }}>
@@ -1427,7 +1571,7 @@ export default function Index() {
                 <Icon name="Users" size={15} style={{ color: 'var(--green)' }} />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white">Пользователи</h2>
+                <h2 className="text-lg font-bold" style={{ color: 'hsl(var(--foreground))' }}>Пользователи</h2>
                 <p className="text-xs" style={{ color: 'var(--steel)' }}>{remoteUsers.length} зарегистрировано</p>
               </div>
             </div>
@@ -1445,7 +1589,7 @@ export default function Index() {
                 style={{ background: 'var(--surface-3)', border: '1px solid var(--border-subtle)' }}>
                 <Icon name="UserX" size={24} style={{ color: 'var(--steel)' }} />
               </div>
-              <p className="text-sm font-medium text-white mb-1">Нет зарегистрированных пользователей</p>
+              <p className="text-sm font-medium mb-1" style={{ color: 'hsl(var(--foreground))' }}>Нет зарегистрированных пользователей</p>
               <p className="text-xs" style={{ color: 'var(--steel)' }}>Они появятся после первой регистрации</p>
             </div>
           ) : (
@@ -1460,7 +1604,7 @@ export default function Index() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap mb-0.5">
-                        <span className="text-sm font-bold text-white">{u.name}</span>
+                        <span className="text-sm font-bold" style={{ color: 'hsl(var(--foreground))' }}>{u.name}</span>
                         <span className="text-xs" style={{ color: 'var(--steel)' }}>{u.email}</span>
                       </div>
                       <div className="flex gap-3 flex-wrap">
@@ -1501,7 +1645,7 @@ export default function Index() {
               <Icon name="Settings2" size={15} style={{ color: 'var(--blue)' }} />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Настройки</h2>
+              <h2 className="text-lg font-bold" style={{ color: 'hsl(var(--foreground))' }}>Настройки</h2>
               <p className="text-xs" style={{ color: 'var(--steel)' }}>Кликните на название или цену — изменится. «+» — добавить пункт</p>
             </div>
           </div>

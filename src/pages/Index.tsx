@@ -23,6 +23,228 @@ const FILL_LABELS: Record<FillType, string> = {
   proflist: 'Профлист', rancho: 'Ранчо', jalusi: 'Жалюзи', siding: 'Металлосайдинг', shtaketnik: 'Штакетник',
 };
 
+// Вес заполнения кг/м² (по техдокументации производителей)
+const FILL_WEIGHT_KG_M2: Record<FillType, number> = {
+  proflist:   5.0,  // профлист С8/С10 — ~5 кг/м²
+  rancho:     8.0,  // ранчо (металлическая рейка) — ~8 кг/м²
+  jalusi:     7.0,  // S-панель/жалюзи — ~7 кг/м²
+  siding:     6.0,  // металлосайдинг — ~6 кг/м²
+  shtaketnik: 4.0,  // металлоштакетник — ~4 кг/м²
+};
+const FRAME_WEIGHT_KG_M2 = 18; // вес каркаса (трубы, направляющие) ~18 кг/м²
+
+// Цвета Alutech (популярные RAL)
+const ALUTECH_COLORS = [
+  { ral: 'RAL 7016', name: 'Серый антрацит', hex: '#293133' },
+  { ral: 'RAL 7024', name: 'Графитовый серый', hex: '#474A51' },
+  { ral: 'RAL 9005', name: 'Чёрный', hex: '#0E0E10' },
+  { ral: 'RAL 9003', name: 'Белый', hex: '#F4F4F4' },
+  { ral: 'RAL 9006', name: 'Белый алюминий', hex: '#A5A5A5' },
+  { ral: 'RAL 9007', name: 'Серый алюминий', hex: '#8F8F8F' },
+  { ral: 'RAL 8017', name: 'Шоколадно-коричневый', hex: '#44221C' },
+  { ral: 'RAL 6005', name: 'Тёмно-зелёный', hex: '#1F4E32' },
+  { ral: 'RAL 5005', name: 'Сигнальный синий', hex: '#1B4288' },
+  { ral: 'RAL 3005', name: 'Винно-красный', hex: '#5B1A19' },
+  { ral: 'RAL 1015', name: 'Светло-слоновая кость', hex: '#EADABC' },
+  { ral: 'RAL 7035', name: 'Светло-серый', hex: '#C5C5C5' },
+];
+
+// Полная палитра RAL
+const RAL_PALETTE = [
+  { ral: 'RAL 1000', name: 'Зелёно-бежевый', hex: '#CCC58F' },
+  { ral: 'RAL 1001', name: 'Бежевый', hex: '#D0B384' },
+  { ral: 'RAL 1002', name: 'Песочно-жёлтый', hex: '#D2AA6D' },
+  { ral: 'RAL 1003', name: 'Сигнально-жёлтый', hex: '#F9A800' },
+  { ral: 'RAL 1004', name: 'Золотисто-жёлтый', hex: '#E49E00' },
+  { ral: 'RAL 1005', name: 'Медово-жёлтый', hex: '#CB8F00' },
+  { ral: 'RAL 1006', name: 'Кукурузно-жёлтый', hex: '#E29000' },
+  { ral: 'RAL 1007', name: 'Нарциссово-жёлтый', hex: '#E88C00' },
+  { ral: 'RAL 1011', name: 'Коричнево-бежевый', hex: '#AF8050' },
+  { ral: 'RAL 1012', name: 'Лимонно-жёлтый', hex: '#D8B600' },
+  { ral: 'RAL 1013', name: 'Жемчужно-белый', hex: '#EBE1C5' },
+  { ral: 'RAL 1014', name: 'Слоновая кость', hex: '#E4D5AE' },
+  { ral: 'RAL 1015', name: 'Светло-слоновая кость', hex: '#EADABC' },
+  { ral: 'RAL 1016', name: 'Серно-жёлтый', hex: '#F0E050' },
+  { ral: 'RAL 1017', name: 'Шафраново-жёлтый', hex: '#F5AF1D' },
+  { ral: 'RAL 1018', name: 'Цинково-жёлтый', hex: '#F6D200' },
+  { ral: 'RAL 1019', name: 'Серо-бежевый', hex: '#A48F75' },
+  { ral: 'RAL 1020', name: 'Оливково-жёлтый', hex: '#A08C55' },
+  { ral: 'RAL 1021', name: 'Рапсово-жёлтый', hex: '#F0C000' },
+  { ral: 'RAL 1023', name: 'Транспортно-жёлтый', hex: '#F7B600' },
+  { ral: 'RAL 1024', name: 'Охра', hex: '#B89050' },
+  { ral: 'RAL 1026', name: 'Люминесцентно-жёлтый', hex: '#FFFF50' },
+  { ral: 'RAL 1027', name: 'Карри', hex: '#9D7C00' },
+  { ral: 'RAL 1028', name: 'Дынно-жёлтый', hex: '#F4A300' },
+  { ral: 'RAL 1032', name: 'Ракитниково-жёлтый', hex: '#E5A000' },
+  { ral: 'RAL 1033', name: 'Георгиново-жёлтый', hex: '#F49400' },
+  { ral: 'RAL 1034', name: 'Пастельно-жёлтый', hex: '#EEA820' },
+  { ral: 'RAL 2000', name: 'Жёлто-оранжевый', hex: '#DF6B00' },
+  { ral: 'RAL 2001', name: 'Красно-оранжевый', hex: '#BE4E20' },
+  { ral: 'RAL 2002', name: 'Алый', hex: '#C43C24' },
+  { ral: 'RAL 2003', name: 'Пастельно-оранжевый', hex: '#F47421' },
+  { ral: 'RAL 2004', name: 'Чисто-оранжевый', hex: '#E55B25' },
+  { ral: 'RAL 2008', name: 'Светло-красно-оранжевый', hex: '#F46A28' },
+  { ral: 'RAL 2009', name: 'Транспортно-оранжевый', hex: '#E05A15' },
+  { ral: 'RAL 2010', name: 'Сигнально-оранжевый', hex: '#D35C19' },
+  { ral: 'RAL 2011', name: 'Глубокий оранжевый', hex: '#EC7C25' },
+  { ral: 'RAL 2012', name: 'Лососево-оранжевый', hex: '#DC6B58' },
+  { ral: 'RAL 3000', name: 'Огненно-красный', hex: '#AB2524' },
+  { ral: 'RAL 3001', name: 'Сигнально-красный', hex: '#9B2321' },
+  { ral: 'RAL 3002', name: 'Карминно-красный', hex: '#9B2423' },
+  { ral: 'RAL 3003', name: 'Рубиново-красный', hex: '#861A22' },
+  { ral: 'RAL 3004', name: 'Пурпурно-красный', hex: '#6B1C23' },
+  { ral: 'RAL 3005', name: 'Винно-красный', hex: '#5B1A19' },
+  { ral: 'RAL 3007', name: 'Чёрно-красный', hex: '#3E1518' },
+  { ral: 'RAL 3009', name: 'Оксидно-красный', hex: '#763128' },
+  { ral: 'RAL 3011', name: 'Коричнево-красный', hex: '#8D2E28' },
+  { ral: 'RAL 3012', name: 'Бежево-красный', hex: '#C97A5A' },
+  { ral: 'RAL 3013', name: 'Томатно-красный', hex: '#9C3428' },
+  { ral: 'RAL 3014', name: 'Антично-розовый', hex: '#C57070' },
+  { ral: 'RAL 3015', name: 'Светло-розовый', hex: '#D8A0A0' },
+  { ral: 'RAL 3016', name: 'Кораллово-красный', hex: '#A83830' },
+  { ral: 'RAL 3017', name: 'Розовый', hex: '#D0505A' },
+  { ral: 'RAL 3018', name: 'Клубнично-красный', hex: '#C83C48' },
+  { ral: 'RAL 3020', name: 'Транспортно-красный', hex: '#BC1A17' },
+  { ral: 'RAL 3022', name: 'Лососево-красный', hex: '#D26055' },
+  { ral: 'RAL 3024', name: 'Люминесцентно-красный', hex: '#FE0000' },
+  { ral: 'RAL 3027', name: 'Малиново-красный', hex: '#AB2546' },
+  { ral: 'RAL 3031', name: 'Ориент-красный', hex: '#A63437' },
+  { ral: 'RAL 4001', name: 'Красно-сиреневый', hex: '#8773A1' },
+  { ral: 'RAL 4002', name: 'Красно-фиолетовый', hex: '#924062' },
+  { ral: 'RAL 4003', name: 'Вересково-фиолетовый', hex: '#D15B8F' },
+  { ral: 'RAL 4004', name: 'Бордово-фиолетовый', hex: '#6B1D47' },
+  { ral: 'RAL 4005', name: 'Голубовато-сиреневый', hex: '#6C6895' },
+  { ral: 'RAL 4006', name: 'Транспортно-пурпурный', hex: '#A03274' },
+  { ral: 'RAL 4007', name: 'Пурпурно-фиолетовый', hex: '#4A1C52' },
+  { ral: 'RAL 4008', name: 'Сигнально-фиолетовый', hex: '#894785' },
+  { ral: 'RAL 4009', name: 'Пастельно-фиолетовый', hex: '#A07890' },
+  { ral: 'RAL 4010', name: 'Телефонный пурпурный', hex: '#C3437A' },
+  { ral: 'RAL 5000', name: 'Фиолетово-синий', hex: '#264E6E' },
+  { ral: 'RAL 5001', name: 'Зелёно-синий', hex: '#1A5173' },
+  { ral: 'RAL 5002', name: 'Ультрамариново-синий', hex: '#003082' },
+  { ral: 'RAL 5003', name: 'Сапфирово-синий', hex: '#1D2E5A' },
+  { ral: 'RAL 5004', name: 'Чёрно-синий', hex: '#18191F' },
+  { ral: 'RAL 5005', name: 'Сигнально-синий', hex: '#1B4288' },
+  { ral: 'RAL 5007', name: 'Бриллиантово-синий', hex: '#375E7C' },
+  { ral: 'RAL 5008', name: 'Серо-синий', hex: '#2B3A48' },
+  { ral: 'RAL 5009', name: 'Лазурно-синий', hex: '#2B5B8D' },
+  { ral: 'RAL 5010', name: 'Горечавково-синий', hex: '#0E4487' },
+  { ral: 'RAL 5011', name: 'Стальной синий', hex: '#1B2C45' },
+  { ral: 'RAL 5012', name: 'Голубой', hex: '#3180BE' },
+  { ral: 'RAL 5013', name: 'Кобальтово-синий', hex: '#1D2E5B' },
+  { ral: 'RAL 5014', name: 'Голубино-синий', hex: '#6B7FA0' },
+  { ral: 'RAL 5015', name: 'Небесно-синий', hex: '#2178C0' },
+  { ral: 'RAL 5017', name: 'Транспортно-синий', hex: '#0A5393' },
+  { ral: 'RAL 5018', name: 'Бирюзово-синий', hex: '#29788C' },
+  { ral: 'RAL 5019', name: 'Капри-синий', hex: '#1B5A82' },
+  { ral: 'RAL 5020', name: 'Морской синий', hex: '#0E3848' },
+  { ral: 'RAL 5021', name: 'Водяной синий', hex: '#1C6B72' },
+  { ral: 'RAL 5022', name: 'Ночной синий', hex: '#1B2448' },
+  { ral: 'RAL 5023', name: 'Дистанционно-синий', hex: '#45617B' },
+  { ral: 'RAL 5024', name: 'Пастельно-синий', hex: '#6690A6' },
+  { ral: 'RAL 6000', name: 'Патиново-зелёный', hex: '#4D7C60' },
+  { ral: 'RAL 6001', name: 'Изумрудно-зелёный', hex: '#2E7C45' },
+  { ral: 'RAL 6002', name: 'Лиственно-зелёный', hex: '#2F6033' },
+  { ral: 'RAL 6003', name: 'Оливково-зелёный', hex: '#4C5B3E' },
+  { ral: 'RAL 6004', name: 'Сине-зелёный', hex: '#1B5142' },
+  { ral: 'RAL 6005', name: 'Тёмно-зелёный', hex: '#1F4E32' },
+  { ral: 'RAL 6006', name: 'Серо-оливковый', hex: '#3D4030' },
+  { ral: 'RAL 6007', name: 'Бутылочно-зелёный', hex: '#2C3826' },
+  { ral: 'RAL 6008', name: 'Коричнево-зелёный', hex: '#333527' },
+  { ral: 'RAL 6009', name: 'Пихтово-зелёный', hex: '#273827' },
+  { ral: 'RAL 6010', name: 'Травяно-зелёный', hex: '#3B6832' },
+  { ral: 'RAL 6011', name: 'Светло-оливковый', hex: '#617A52' },
+  { ral: 'RAL 6012', name: 'Чёрно-зелёный', hex: '#2F3E35' },
+  { ral: 'RAL 6013', name: 'Тростниково-зелёный', hex: '#7A7B5C' },
+  { ral: 'RAL 6014', name: 'Жёлто-оливковый', hex: '#4B4E3B' },
+  { ral: 'RAL 6015', name: 'Чёрно-оливковый', hex: '#3B3E35' },
+  { ral: 'RAL 6016', name: 'Бирюзово-зелёный', hex: '#1E6952' },
+  { ral: 'RAL 6017', name: 'Майско-зелёный', hex: '#4B8B43' },
+  { ral: 'RAL 6018', name: 'Жёлто-зелёный', hex: '#4E9A45' },
+  { ral: 'RAL 6019', name: 'Бело-зелёный', hex: '#B7D4B2' },
+  { ral: 'RAL 6020', name: 'Хромово-зелёный', hex: '#334030' },
+  { ral: 'RAL 6021', name: 'Бледно-зелёный', hex: '#6E8D6D' },
+  { ral: 'RAL 6022', name: 'Коричнево-оливковый', hex: '#3A3C2C' },
+  { ral: 'RAL 6024', name: 'Транспортно-зелёный', hex: '#3B8A5C' },
+  { ral: 'RAL 6025', name: 'Папоротниково-зелёный', hex: '#4C6845' },
+  { ral: 'RAL 6026', name: 'Опаловый зелёный', hex: '#106C5E' },
+  { ral: 'RAL 6027', name: 'Светло-зелёный', hex: '#75C4BF' },
+  { ral: 'RAL 6028', name: 'Сосново-зелёный', hex: '#2D5A49' },
+  { ral: 'RAL 6029', name: 'Мятно-зелёный', hex: '#186A47' },
+  { ral: 'RAL 6032', name: 'Сигнально-зелёный', hex: '#317F52' },
+  { ral: 'RAL 6033', name: 'Мятно-бирюзовый', hex: '#4C7C7A' },
+  { ral: 'RAL 6034', name: 'Пастельно-бирюзовый', hex: '#7FB5B0' },
+  { ral: 'RAL 7000', name: 'Серая белка', hex: '#7D8B8A' },
+  { ral: 'RAL 7001', name: 'Серебристо-серый', hex: '#909093' },
+  { ral: 'RAL 7002', name: 'Оливково-серый', hex: '#878168' },
+  { ral: 'RAL 7003', name: 'Серый мох', hex: '#818479' },
+  { ral: 'RAL 7004', name: 'Сигнально-серый', hex: '#9EA0A1' },
+  { ral: 'RAL 7005', name: 'Мышино-серый', hex: '#6B716E' },
+  { ral: 'RAL 7006', name: 'Бежево-серый', hex: '#766E60' },
+  { ral: 'RAL 7008', name: 'Хаки-серый', hex: '#756E50' },
+  { ral: 'RAL 7009', name: 'Зелёно-серый', hex: '#575D57' },
+  { ral: 'RAL 7010', name: 'Брезентово-серый', hex: '#545855' },
+  { ral: 'RAL 7011', name: 'Железно-серый', hex: '#4D5558' },
+  { ral: 'RAL 7012', name: 'Базальтово-серый', hex: '#4D5558' },
+  { ral: 'RAL 7013', name: 'Коричнево-серый', hex: '#555048' },
+  { ral: 'RAL 7015', name: 'Сланцево-серый', hex: '#3E4348' },
+  { ral: 'RAL 7016', name: 'Антрацитово-серый', hex: '#293133' },
+  { ral: 'RAL 7021', name: 'Чёрно-серый', hex: '#2A2D2F' },
+  { ral: 'RAL 7022', name: 'Серая умбра', hex: '#3C3B38' },
+  { ral: 'RAL 7023', name: 'Бетонно-серый', hex: '#7D8082' },
+  { ral: 'RAL 7024', name: 'Графитово-серый', hex: '#474A51' },
+  { ral: 'RAL 7026', name: 'Гранитово-серый', hex: '#374044' },
+  { ral: 'RAL 7030', name: 'Каменно-серый', hex: '#969690' },
+  { ral: 'RAL 7031', name: 'Сине-серый', hex: '#5B6C72' },
+  { ral: 'RAL 7032', name: 'Галечно-серый', hex: '#C0C0B0' },
+  { ral: 'RAL 7033', name: 'Цементно-серый', hex: '#818C84' },
+  { ral: 'RAL 7034', name: 'Жёлто-серый', hex: '#978D7B' },
+  { ral: 'RAL 7035', name: 'Светло-серый', hex: '#C5C5C5' },
+  { ral: 'RAL 7036', name: 'Платиново-серый', hex: '#9A9697' },
+  { ral: 'RAL 7037', name: 'Пыльно-серый', hex: '#808080' },
+  { ral: 'RAL 7038', name: 'Агатово-серый', hex: '#B0B0A8' },
+  { ral: 'RAL 7039', name: 'Кварцево-серый', hex: '#6B6A62' },
+  { ral: 'RAL 7040', name: 'Оконно-серый', hex: '#9DA3A8' },
+  { ral: 'RAL 7042', name: 'Транспортно-серый A', hex: '#9C9E9F' },
+  { ral: 'RAL 7043', name: 'Транспортно-серый B', hex: '#4E5451' },
+  { ral: 'RAL 7044', name: 'Шёлково-серый', hex: '#C2BEB5' },
+  { ral: 'RAL 7045', name: 'Телегрей 1', hex: '#91969B' },
+  { ral: 'RAL 7046', name: 'Телегрей 2', hex: '#82888C' },
+  { ral: 'RAL 7047', name: 'Телегрей 4', hex: '#D0D0CE' },
+  { ral: 'RAL 8000', name: 'Зелёно-коричневый', hex: '#887044' },
+  { ral: 'RAL 8001', name: 'Охристо-коричневый', hex: '#9D6228' },
+  { ral: 'RAL 8002', name: 'Сигнальный коричневый', hex: '#784232' },
+  { ral: 'RAL 8003', name: 'Глинисто-коричневый', hex: '#7B4C2A' },
+  { ral: 'RAL 8004', name: 'Медно-коричневый', hex: '#8A4331' },
+  { ral: 'RAL 8007', name: 'Оленье-коричневый', hex: '#6D4436' },
+  { ral: 'RAL 8008', name: 'Оливково-коричневый', hex: '#6B4226' },
+  { ral: 'RAL 8009', name: 'Серо-коричневый', hex: '#5A3E35' },
+  { ral: 'RAL 8011', name: 'Орехово-коричневый', hex: '#5B3426' },
+  { ral: 'RAL 8012', name: 'Красно-коричневый', hex: '#672424' },
+  { ral: 'RAL 8014', name: 'Сепия', hex: '#3B2821' },
+  { ral: 'RAL 8015', name: 'Каштаново-коричневый', hex: '#5C2C28' },
+  { ral: 'RAL 8016', name: 'Махагоново-коричневый', hex: '#4E2417' },
+  { ral: 'RAL 8017', name: 'Шоколадно-коричневый', hex: '#44221C' },
+  { ral: 'RAL 8019', name: 'Серо-коричневый', hex: '#3D2B25' },
+  { ral: 'RAL 8022', name: 'Чёрно-коричневый', hex: '#1A1214' },
+  { ral: 'RAL 8023', name: 'Оранжево-коричневый', hex: '#7B3F26' },
+  { ral: 'RAL 8024', name: 'Бежево-коричневый', hex: '#7B4C30' },
+  { ral: 'RAL 8025', name: 'Бледно-коричневый', hex: '#7B5C49' },
+  { ral: 'RAL 8028', name: 'Земляной коричневый', hex: '#4C2F24' },
+  { ral: 'RAL 9001', name: 'Кремовый', hex: '#F0EAD5' },
+  { ral: 'RAL 9002', name: 'Серо-белый', hex: '#E1DDD3' },
+  { ral: 'RAL 9003', name: 'Сигнально-белый', hex: '#F4F4F4' },
+  { ral: 'RAL 9004', name: 'Сигнально-чёрный', hex: '#2B2C2C' },
+  { ral: 'RAL 9005', name: 'Реактивно-чёрный', hex: '#0E0E10' },
+  { ral: 'RAL 9006', name: 'Белый алюминий', hex: '#A5A5A5' },
+  { ral: 'RAL 9007', name: 'Серый алюминий', hex: '#8F8F8F' },
+  { ral: 'RAL 9010', name: 'Чисто-белый', hex: '#F5F5F0' },
+  { ral: 'RAL 9011', name: 'Графитово-чёрный', hex: '#282828' },
+  { ral: 'RAL 9016', name: 'Транспортно-белый', hex: '#F6F6F6' },
+  { ral: 'RAL 9017', name: 'Транспортно-чёрный', hex: '#1E1E1E' },
+  { ral: 'RAL 9018', name: 'Папирусно-белый', hex: '#D7D6CF' },
+];
+
 const AUTOMATION_OPTIONS = [
   { id: 'none',      label: 'Без автоматики',                                    price: 0,     type: 'any' },
   { id: 'alu_s1',   label: 'Алютех откатные — 500',                             price: 18050, type: 'sliding' },
@@ -264,6 +486,12 @@ interface KpData {
   subtotal: number; markup: number; markupAmt: number; total: number;
   gateArea: number; wicketArea: number;
   fillLabel: string;
+  fillSides: 'none' | 'single' | 'double';
+  fillColor: string;
+  fillColorName: string;
+  gateWeightTotal: number;
+  wicketWeightTotal: number;
+  swingDir: 'inward' | 'outward';
   sketchSvg: string;
   savedAt: string;
 }
@@ -271,76 +499,136 @@ interface KpData {
 function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
   const printRef = useRef<HTMLDivElement>(null);
 
+  const gateTypeLabel = data.gateType === 'sliding' ? 'Откатные' : data.gateType === 'swing' ? 'Распашные' : data.gateType === 'accordion' ? 'Гармошка' : 'Распашные с калиткой';
+  const fillSidesLabel = (data.fillSides ?? 'single') === 'none' ? 'Без заполнения' : (data.fillSides ?? 'single') === 'double' ? 'Двухстороннее' : 'Одностороннее';
+  const openDirLabel = data.openDir === 'left' ? 'Влево' : 'Вправо';
+  const swingDirLabel = (data.swingDir ?? 'outward') === 'outward' ? 'Наружу' : 'Внутрь';
+  const productLines = data.lineItems.filter(r => !(r as {isInstall?:boolean}).isInstall);
+  const installLines = data.lineItems.filter(r => (r as {isInstall?:boolean}).isInstall);
+
   const handlePrint = () => {
     const el = printRef.current;
     if (!el) return;
     const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>КП ${data.rnk}</title>
     <style>
       * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font-family: 'Arial', sans-serif; font-size: 13px; color: #1a1a1a; padding: 24px; }
-      .logo { font-size: 18px; font-weight: 900; color: #0A84FF; letter-spacing: 2px; margin-bottom: 4px; }
-      .subtitle { font-size: 11px; color: #666; margin-bottom: 20px; }
-      h2 { font-size: 15px; font-weight: 700; margin-bottom: 4px; }
-      .rnk { font-size: 11px; color: #666; margin-bottom: 20px; font-family: monospace; }
-      table { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
-      th { background: #f0f4f8; padding: 8px 10px; text-align: left; font-size: 11px; font-weight: 700; text-transform: uppercase; color: #555; border: 1px solid #e2e8f0; }
-      td { padding: 7px 10px; border: 1px solid #e2e8f0; vertical-align: top; }
-      .tr-alt { background: #f8fafc; }
-      .money { font-family: monospace; text-align: right; white-space: nowrap; }
-      .total-row td { font-weight: 700; background: #0A84FF; color: white; font-size: 15px; }
-      .total-row .money { font-size: 17px; }
-      .footer { margin-top: 24px; font-size: 10px; color: #999; border-top: 1px solid #e2e8f0; padding-top: 10px; }
-      .sketch-wrap { margin-bottom: 18px; }
-      .sketch-label { font-size: 10px; font-weight: 700; color: #4a5568; letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px; }
-      .sketch-svg { background: #0E1520; border-radius: 8px; border: 1px solid #e2e8f0; overflow: hidden; max-width: 480px; }
-      .sketch-svg svg { display: block; width: 100%; height: auto; }
-      .sketch-dims { margin-top: 6px; font-size: 11px; color: #718096; }
-      .sketch-dims b { color: #2d3748; }
-      @media print { body { padding: 10mm; } .sketch-svg { max-width: 100%; } }
+      body { font-family: 'Arial', sans-serif; font-size: 12px; color: #111; padding: 20px; }
+      .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px; border-bottom: 2px solid #0A70E8; padding-bottom: 12px; }
+      .logo { font-size: 20px; font-weight: 900; color: #0A70E8; letter-spacing: 1px; }
+      .logo-sub { font-size: 10px; color: #666; margin-top: 2px; }
+      .title-block { text-align: center; margin-bottom: 16px; }
+      .title-block h2 { font-size: 15px; font-weight: 700; }
+      .title-block .date { font-size: 12px; color: #444; }
+      .info-row { font-size: 11px; color: #444; margin-bottom: 14px; }
+      table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+      th { background: #e8f0fb; padding: 7px 8px; text-align: center; font-size: 11px; font-weight: 700; border: 1px solid #c0cce0; }
+      td { padding: 5px 8px; border: 1px solid #c0cce0; vertical-align: top; font-size: 11px; }
+      .td-num { width: 32px; text-align: center; font-weight: 700; }
+      .td-name { }
+      .td-price { width: 80px; text-align: right; font-family: monospace; white-space: nowrap; }
+      .td-qty { width: 50px; text-align: center; }
+      .td-unit { width: 40px; text-align: center; }
+      .td-sum { width: 90px; text-align: right; font-family: monospace; font-weight: 700; white-space: nowrap; }
+      .spec-row td { font-size: 10px; color: #333; padding: 2px 8px 2px 16px; border-left: 1px solid #c0cce0; border-right: 1px solid #c0cce0; border-top: none; border-bottom: none; }
+      .spec-row td:first-child { border-left: 1px solid #c0cce0; }
+      .section-header td { background: #f5f5f5; font-weight: 700; font-size: 11px; padding: 5px 8px; }
+      .total-product td { background: #f0f4ff; font-weight: 700; text-align: right; }
+      .total-final td { background: #0A70E8; color: white; font-weight: 700; font-size: 13px; text-align: right; }
+      .sketch-block { float: right; margin: 0 0 12px 16px; max-width: 220px; }
+      .sketch-block svg { display: block; width: 220px; height: auto; background: #0e1520; border-radius: 6px; }
+      .weight-badge { display: inline-block; background: #e8f0fb; border: 1px solid #0A70E8; border-radius: 4px; padding: 1px 8px; font-size: 10px; color: #0A70E8; font-weight: 700; margin-left: 6px; }
+      .color-swatch { display: inline-block; width: 12px; height: 12px; border-radius: 2px; border: 1px solid #999; vertical-align: middle; margin-right: 4px; }
+      .footer { margin-top: 16px; font-size: 10px; color: #888; border-top: 1px solid #ddd; padding-top: 8px; }
+      @media print { body { padding: 8mm; } }
     </style></head><body>
-    <div class="logo">МЕТАЛЛКОНСТРУКТОР</div>
-    <div class="subtitle">Коммерческое предложение</div>
-    <h2>Расчёт металлических ворот</h2>
-    <div class="rnk">РНК: ${data.rnk} &nbsp;|&nbsp; Дата: ${new Date().toLocaleDateString('ru-RU')}</div>
-    <div class="sketch-wrap">
-      <div class="sketch-label">СХЕМА</div>
-      <div class="sketch-svg">${data.sketchSvg}</div>
-      <div class="sketch-dims">
-        Ворота: <b>${(data.gateW/1000).toFixed(2)} м × ${(data.gateH/1000).toFixed(2)} м</b>
-        ${data.hasWicket ? `&nbsp;&nbsp;Калитка: <b>${(data.wicketW/1000).toFixed(2)} м × ${(data.wicketH/1000).toFixed(2)} м</b>` : ''}
+    <div class="header">
+      <div>
+        <div class="logo">МЕТАЛЛКОНСТРУКТОР</div>
+        <div class="logo-sub">Расчёт металлических ворот и заграждений</div>
+      </div>
+      <div style="text-align:right; font-size:11px; color:#555;">
+        <div>РНК: <b>${data.rnk}</b></div>
+        <div>Дата: ${new Date().toLocaleDateString('ru-RU')}</div>
       </div>
     </div>
+
+    <div class="title-block">
+      <h2>Расчёт стоимости заказа №${data.rnk}</h2>
+      <div class="date">от ${new Date().toLocaleDateString('ru-RU')}</div>
+    </div>
+
+    <div class="sketch-block">${data.sketchSvg}</div>
+
+    <div class="info-row">Общее количество позиций в заказе: ${productLines.length + installLines.length}</div>
+
     <table>
-      <thead><tr><th>Наименование</th><th>Характеристика</th></tr></thead>
+      <thead>
+        <tr>
+          <th class="td-num">№</th>
+          <th class="td-name">Наименование / Спецификация</th>
+          <th class="td-price">Цена, ₽</th>
+          <th class="td-qty">Кол-во</th>
+          <th class="td-unit">Ед.</th>
+          <th class="td-sum">Стоимость, ₽</th>
+        </tr>
+      </thead>
       <tbody>
-        <tr><td>Тип ворот</td><td>${data.gateType === 'sliding' ? 'Откатные' : data.gateType === 'swing' ? 'Распашные' : 'Распашные с калиткой'}</td></tr>
-        <tr class="tr-alt"><td>Размер</td><td>${(data.gateW/1000).toFixed(2)} м × ${(data.gateH/1000).toFixed(2)} м</td></tr>
-        <tr><td>Площадь</td><td>${data.gateArea.toFixed(2)} м²${data.hasWicket ? ` + ${data.wicketArea.toFixed(2)} м² (калитка)` : ''}</td></tr>
-        ${data.isNonStd ? `<tr class="tr-alt"><td>Надбавка нестандарт</td><td>+15%</td></tr>` : ''}
-        ${data.hasWicket ? `<tr><td>Калитка</td><td>${(data.wicketW/1000).toFixed(2)} м × ${(data.wicketH/1000).toFixed(2)} м</td></tr>` : ''}
-        ${data.autoLabel !== 'Без автоматики' ? `<tr class="tr-alt"><td>Автоматика</td><td>${data.autoLabel}</td></tr>` : ''}
-        ${data.extras.map((e,i) => `<tr${i%2===0?' class="tr-alt"':''}><td>Доп. опция</td><td>${e}</td></tr>`).join('')}
-        <tr><td>Заполнение</td><td>${data.fillLabel}</td></tr>
+        <!-- Основное изделие -->
+        <tr>
+          <td class="td-num">1</td>
+          <td class="td-name">
+            <b>Ворота ${gateTypeLabel} ${(data.gateW/1000).toFixed(2)}×${(data.gateH/1000).toFixed(2)} м</b>
+            <span class="weight-badge">~${data.gateWeightTotal ?? '—'} кг</span>
+          </td>
+          <td class="td-price">${Math.round(data.subtotal - (installLines.reduce((s,r) => s+r.value, 0))).toLocaleString('ru-RU')}</td>
+          <td class="td-qty">1</td>
+          <td class="td-unit">шт.</td>
+          <td class="td-sum">${Math.round(data.subtotal - (installLines.reduce((s,r) => s+r.value, 0))).toLocaleString('ru-RU')}</td>
+        </tr>
+        <!-- Спецификация -->
+        <tr class="spec-row"><td colspan="6">Ширина проёма: ${data.gateW} мм</td></tr>
+        <tr class="spec-row"><td colspan="6">Высота полотна: ${data.gateH} мм</td></tr>
+        <tr class="spec-row"><td colspan="6">Площадь полотна: ${data.gateArea.toFixed(2)} м²${data.hasWicket ? ` + ${data.wicketArea.toFixed(2)} м² (калитка)` : ''}</td></tr>
+        <tr class="spec-row"><td colspan="6">Вес конструкции: ~${data.gateWeightTotal ?? '—'} кг${data.hasWicket && data.wicketWeightTotal ? ` + ~${data.wicketWeightTotal} кг (калитка)` : ''}</td></tr>
+        <tr class="spec-row"><td colspan="6">Тип открывания: ${gateTypeLabel}${data.gateType === 'swing' || data.gateType === 'swing_wicket' ? ` — ${swingDirLabel}, петли ${openDirLabel.toLowerCase()}` : ` — ${openDirLabel}`}</td></tr>
+        <tr class="spec-row"><td colspan="6">Заполнение: ${data.fillLabel} — ${fillSidesLabel}, направление ${data.fillDir === 'horizontal' ? 'горизонтальное' : 'вертикальное'}</td></tr>
+        ${data.fillColor && data.fillSides !== 'none' ? `<tr class="spec-row"><td colspan="6">Цвет заполнения: ${data.fillColor} — ${data.fillColorName}</td></tr>` : ''}
+        ${data.isNonStd ? `<tr class="spec-row"><td colspan="6"><b style="color:#c00">Нестандартный размер — надбавка +15%</b></td></tr>` : ''}
+        ${data.hasWicket ? `<tr class="spec-row"><td colspan="6">Калитка: ${(data.wicketW/1000).toFixed(2)}×${(data.wicketH/1000).toFixed(2)} м</td></tr>` : ''}
+        ${data.autoLabel && data.autoLabel !== 'Без автоматики' ? `<tr class="spec-row"><td colspan="6">Автоматика: ${data.autoLabel}</td></tr>` : ''}
+        ${data.extras.map(e => `<tr class="spec-row"><td colspan="6">Доп. опция: ${e}</td></tr>`).join('')}
+
+        ${installLines.length > 0 ? `
+        <tr class="section-header"><td colspan="6">Монтажные работы</td></tr>
+        ${installLines.map((r,i) => `
+        <tr>
+          <td class="td-num">${i+2}</td>
+          <td class="td-name">${r.label}</td>
+          <td class="td-price">${r.value.toLocaleString('ru-RU')}</td>
+          <td class="td-qty">1</td>
+          <td class="td-unit">шт.</td>
+          <td class="td-sum">${r.value.toLocaleString('ru-RU')}</td>
+        </tr>`).join('')}` : ''}
+
+        ${data.markupAmt > 0 ? `
+        <tr class="section-header"><td colspan="6">Наценки</td></tr>
+        <tr>
+          <td colspan="5" style="text-align:right">Наценка ${data.markup}% (на изделие)</td>
+          <td class="td-sum">${data.markupAmt.toLocaleString('ru-RU')}</td>
+        </tr>` : ''}
+
+        <tr class="total-final">
+          <td colspan="5">ИТОГО К ОПЛАТЕ</td>
+          <td class="td-sum" style="font-size:14px">${data.total.toLocaleString('ru-RU')} ₽</td>
+        </tr>
       </tbody>
     </table>
-    ${(data.installAuto || data.installFill || data.installGate || data.installFrame || (data.hasWicket && data.installWicket)) ? `
-    <table>
-      <thead><tr><th>Монтажные работы</th><th class="money">Стоимость</th></tr></thead>
-      <tbody>
-        ${data.installAuto ? `<tr><td>Монтаж автоматики</td><td class="money">${fmt(DEFAULT_INST_AUTO)}</td></tr>` : ''}
-        ${data.installFill ? `<tr class="tr-alt"><td>Установка заполнения (${DEFAULT_INST_FILL_M2} ₽/м²)</td><td class="money">${fmt(DEFAULT_INST_FILL_M2 * data.gateArea)}</td></tr>` : ''}
-        ${data.installGate ? `<tr><td>Установка ворот</td><td class="money">${fmt(DEFAULT_INST_GATE)}</td></tr>` : ''}
-        ${data.installFrame ? `<tr class="tr-alt"><td>Установка опорной рамы</td><td class="money">${fmt(DEFAULT_INST_FRAME)}</td></tr>` : ''}
-        ${data.hasWicket && data.installWicket ? `<tr><td>Монтаж калитки</td><td class="money">${fmt(DEFAULT_INST_WICKET)}</td></tr>` : ''}
-        <tr class="total-row"><td>ИТОГО К ОПЛАТЕ</td><td class="money">${fmt(data.total)}</td></tr>
-      </tbody>
-    </table>` : `
-    <table>
-      <tbody>
-        <tr class="total-row"><td>ИТОГО К ОПЛАТЕ</td><td class="money">${fmt(data.total)}</td></tr>
-      </tbody>
-    </table>`}
-    <div class="footer">Данное коммерческое предложение действительно 30 дней. МеталлКонструктор — профессиональный расчёт ворот.</div>
+
+    <div style="clear:both"></div>
+    <div class="footer">
+      Коммерческое предложение действительно 30 дней. МеталлКонструктор — профессиональный расчёт ворот и автоматики.
+      <br>Все цены указаны в рублях РФ. Вес конструкции рассчитан ориентировочно.
+    </div>
     </body></html>`;
 
     const w = window.open('', '_blank');
@@ -384,18 +672,21 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
         {/* Body */}
         <div className="px-8 py-6">
           {/* Параметры */}
-          <div className="grid grid-cols-2 gap-3 mb-6">
+          <div className="grid grid-cols-3 gap-2 mb-4">
             {[
-              { label: 'Тип ворот', val: data.gateType === 'sliding' ? 'Откатные' : data.gateType === 'swing' ? 'Распашные' : 'Распашные с калиткой' },
-              { label: 'Размер', val: `${(data.gateW/1000).toFixed(2)} м × ${(data.gateH/1000).toFixed(2)} м` },
-              { label: 'Площадь полотна', val: `${data.gateArea.toFixed(2)} м²` },
-              { label: 'Заполнение', val: data.fillLabel },
+              { label: 'Тип ворот', val: gateTypeLabel },
+              { label: 'Размер', val: `${(data.gateW/1000).toFixed(2)} × ${(data.gateH/1000).toFixed(2)} м` },
+              { label: 'Площадь', val: `${data.gateArea.toFixed(2)} м²` },
+              { label: 'Заполнение', val: `${data.fillLabel} · ${fillSidesLabel}` },
+              { label: 'Цвет', val: data.fillColor && data.fillSides !== 'none' ? `${data.fillColor} ${data.fillColorName}` : '—' },
+              { label: 'Вес конструкции', val: `~${data.gateWeightTotal ?? '—'} кг` },
               ...(data.hasWicket ? [{ label: 'Калитка', val: `${(data.wicketW/1000).toFixed(2)} × ${(data.wicketH/1000).toFixed(2)} м` }] : []),
               ...(data.autoLabel !== 'Без автоматики' ? [{ label: 'Автоматика', val: data.autoLabel }] : []),
+              ...(data.gateType === 'swing' || data.gateType === 'swing_wicket' ? [{ label: 'Открытие', val: `${swingDirLabel} · петли ${openDirLabel.toLowerCase()}` }] : []),
             ].map((row, i) => (
-              <div key={i} className="rounded-lg p-3" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
+              <div key={i} className="rounded-lg p-2.5" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
                 <div className="text-xs mb-0.5" style={{ color: '#718096' }}>{row.label}</div>
-                <div className="text-sm font-semibold" style={{ color: '#1a202c' }}>{row.val}</div>
+                <div className="text-xs font-semibold" style={{ color: '#1a202c' }}>{row.val}</div>
               </div>
             ))}
           </div>
@@ -411,61 +702,91 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
             </div>
           </div>
 
-          {/* Таблица — состав (без цен) */}
+          {/* Главная таблица-спецификация */}
           <div className="rounded-xl overflow-hidden mb-4" style={{ border: '1px solid #e2e8f0' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
               <thead>
-                <tr style={{ background: '#f0f4f8' }}>
-                  <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#4a5568', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #e2e8f0' }}>Наименование</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#4a5568', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #e2e8f0' }}>Характеристика</th>
+                <tr style={{ background: '#e8f0fb' }}>
+                  <th style={{ padding: '7px 8px', textAlign: 'center', fontWeight: 700, color: '#374151', border: '1px solid #c0cce0', width: 28 }}>№</th>
+                  <th style={{ padding: '7px 8px', textAlign: 'left', fontWeight: 700, color: '#374151', border: '1px solid #c0cce0' }}>Наименование</th>
+                  <th style={{ padding: '7px 8px', textAlign: 'right', fontWeight: 700, color: '#374151', border: '1px solid #c0cce0', width: 80 }}>Цена, ₽</th>
+                  <th style={{ padding: '7px 8px', textAlign: 'center', fontWeight: 700, color: '#374151', border: '1px solid #c0cce0', width: 44 }}>Кол.</th>
+                  <th style={{ padding: '7px 8px', textAlign: 'center', fontWeight: 700, color: '#374151', border: '1px solid #c0cce0', width: 36 }}>Ед.</th>
+                  <th style={{ padding: '7px 8px', textAlign: 'right', fontWeight: 700, color: '#374151', border: '1px solid #c0cce0', width: 90 }}>Стоимость</th>
                 </tr>
               </thead>
               <tbody>
-                {[
-                  { label: 'Тип ворот', val: data.gateType === 'sliding' ? 'Откатные' : data.gateType === 'swing' ? 'Распашные' : 'Распашные с калиткой' },
-                  { label: 'Размер', val: `${(data.gateW/1000).toFixed(2)} м × ${(data.gateH/1000).toFixed(2)} м` },
-                  { label: 'Площадь', val: `${data.gateArea.toFixed(2)} м²${data.hasWicket ? ` + ${data.wicketArea.toFixed(2)} м² (калитка)` : ''}` },
-                  ...(data.isNonStd ? [{ label: 'Надбавка', val: 'Нестандартный размер +15%' }] : []),
-                  ...(data.hasWicket ? [{ label: 'Калитка', val: `${(data.wicketW/1000).toFixed(2)} × ${(data.wicketH/1000).toFixed(2)} м` }] : []),
-                  { label: 'Заполнение', val: data.fillLabel },
-                  ...(data.autoLabel !== 'Без автоматики' ? [{ label: 'Автоматика', val: data.autoLabel }] : []),
-                  ...data.extras.map(e => ({ label: 'Доп. опция', val: e })),
-                ].map((row, i) => (
-                  <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f8fafc' }}>
-                    <td style={{ padding: '8px 12px', fontSize: 13, color: '#718096', borderBottom: '1px solid #f0f4f8', whiteSpace: 'nowrap' }}>{row.label}</td>
-                    <td style={{ padding: '8px 12px', fontSize: 13, color: '#2d3748', borderBottom: '1px solid #f0f4f8', fontWeight: 500 }}>{row.val}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                {/* Строка изделия */}
+                <tr>
+                  <td style={{ padding: '7px 8px', textAlign: 'center', fontWeight: 700, border: '1px solid #e2e8f0' }}>1</td>
+                  <td style={{ padding: '7px 8px', border: '1px solid #e2e8f0' }}>
+                    <div style={{ fontWeight: 700, marginBottom: 2 }}>
+                      Ворота {gateTypeLabel} {(data.gateW/1000).toFixed(2)}×{(data.gateH/1000).toFixed(2)} м
+                      <span style={{ display: 'inline-block', background: '#e8f0fb', border: '1px solid #0A70E8', borderRadius: 3, padding: '1px 6px', fontSize: 10, color: '#0A70E8', fontWeight: 700, marginLeft: 6 }}>~{data.gateWeightTotal ?? '—'} кг</span>
+                    </div>
+                    {/* Спецификация */}
+                    {[
+                      `Ширина проёма: ${data.gateW} мм`,
+                      `Высота полотна: ${data.gateH} мм`,
+                      `Площадь: ${data.gateArea.toFixed(2)} м²${data.hasWicket ? ` + ${data.wicketArea.toFixed(2)} м² (калитка)` : ''}`,
+                      `Вес конструкции: ~${data.gateWeightTotal ?? '—'} кг${data.hasWicket && data.wicketWeightTotal ? ` + ~${data.wicketWeightTotal} кг (калитка)` : ''}`,
+                      ...(data.gateType === 'swing' || data.gateType === 'swing_wicket' ? [`Направление открытия: ${swingDirLabel}, петли ${openDirLabel.toLowerCase()}`] : [`Направление откатывания: ${openDirLabel}`]),
+                      `Заполнение: ${data.fillLabel} — ${fillSidesLabel}, ${data.fillDir === 'horizontal' ? 'горизонтальное' : 'вертикальное'}`,
+                      ...(data.fillColor && data.fillSides !== 'none' ? [`Цвет: ${data.fillColor} — ${data.fillColorName}`] : []),
+                      ...(data.isNonStd ? ['⚠ Нестандартный размер — надбавка +15%'] : []),
+                      ...(data.hasWicket ? [`Калитка: ${(data.wicketW/1000).toFixed(2)}×${(data.wicketH/1000).toFixed(2)} м`] : []),
+                      ...(data.autoLabel !== 'Без автоматики' ? [`Автоматика: ${data.autoLabel}`] : []),
+                      ...data.extras.map(e => `Доп. опция: ${e}`),
+                    ].map((s, i) => (
+                      <div key={i} style={{ fontSize: 11, color: s.startsWith('⚠') ? '#c00' : '#555', paddingLeft: 8 }}>{s}</div>
+                    ))}
+                  </td>
+                  <td style={{ padding: '7px 8px', textAlign: 'right', fontFamily: 'monospace', border: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}>
+                    {Math.round(productLines.reduce((s,r)=>s+r.value,0)).toLocaleString('ru-RU')}
+                  </td>
+                  <td style={{ padding: '7px 8px', textAlign: 'center', border: '1px solid #e2e8f0' }}>1</td>
+                  <td style={{ padding: '7px 8px', textAlign: 'center', border: '1px solid #e2e8f0' }}>шт.</td>
+                  <td style={{ padding: '7px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, border: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}>
+                    {Math.round(productLines.reduce((s,r)=>s+r.value,0)).toLocaleString('ru-RU')} ₽
+                  </td>
+                </tr>
 
-          {/* Таблица — монтажи + итог */}
-          <div className="rounded-xl overflow-hidden" style={{ border: '1px solid #e2e8f0' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: '#f0f4f8' }}>
-                  <th style={{ padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700, color: '#4a5568', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #e2e8f0' }}>Монтажные работы</th>
-                  <th style={{ padding: '8px 12px', textAlign: 'right', fontSize: 11, fontWeight: 700, color: '#4a5568', textTransform: 'uppercase', letterSpacing: '0.05em', borderBottom: '1px solid #e2e8f0' }}>Стоимость</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.lineItems.filter(r =>
-                  r.label.startsWith('Монтаж') || r.label.startsWith('Установка')
-                ).map((row, i) => (
-                  <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f8fafc' }}>
-                    <td style={{ padding: '9px 12px', fontSize: 13, color: '#2d3748', borderBottom: '1px solid #f0f4f8' }}>{row.label}</td>
-                    <td style={{ padding: '9px 12px', fontSize: 13, fontFamily: 'monospace', textAlign: 'right', color: '#2d3748', borderBottom: '1px solid #f0f4f8', whiteSpace: 'nowrap' }}>{fmt(row.value)}</td>
-                  </tr>
-                ))}
-                {data.lineItems.filter(r => r.label.startsWith('Монтаж') || r.label.startsWith('Установка')).length === 0 && (
-                  <tr style={{ background: 'white' }}>
-                    <td colSpan={2} style={{ padding: '9px 12px', fontSize: 13, color: '#a0aec0', borderBottom: '1px solid #f0f4f8', fontStyle: 'italic' }}>Монтажные работы не выбраны</td>
+                {/* Монтажные работы */}
+                {installLines.length > 0 && (
+                  <tr style={{ background: '#f5f5f5' }}>
+                    <td colSpan={6} style={{ padding: '5px 8px', fontWeight: 700, fontSize: 11, border: '1px solid #e2e8f0', color: '#374151' }}>Монтажные работы</td>
                   </tr>
                 )}
-                <tr style={{ background: '#0A84FF' }}>
-                  <td style={{ padding: '12px 12px', fontSize: 15, fontWeight: 800, color: 'white' }}>ИТОГО К ОПЛАТЕ</td>
-                  <td style={{ padding: '12px 12px', fontSize: 18, fontFamily: 'monospace', textAlign: 'right', fontWeight: 900, color: 'white', whiteSpace: 'nowrap' }}>{fmt(data.total)}</td>
+                {installLines.map((row, i) => (
+                  <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f8fafc' }}>
+                    <td style={{ padding: '6px 8px', textAlign: 'center', fontWeight: 700, border: '1px solid #e2e8f0' }}>{i + 2}</td>
+                    <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{row.label}</td>
+                    <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'monospace', border: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}>{row.value.toLocaleString('ru-RU')}</td>
+                    <td style={{ padding: '6px 8px', textAlign: 'center', border: '1px solid #e2e8f0' }}>1</td>
+                    <td style={{ padding: '6px 8px', textAlign: 'center', border: '1px solid #e2e8f0' }}>шт.</td>
+                    <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, border: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}>{row.value.toLocaleString('ru-RU')} ₽</td>
+                  </tr>
+                ))}
+
+                {/* Наценка */}
+                {data.markupAmt > 0 && (
+                  <>
+                    <tr style={{ background: '#fffbeb' }}>
+                      <td colSpan={6} style={{ padding: '5px 8px', fontWeight: 700, fontSize: 11, border: '1px solid #e2e8f0', color: '#374151' }}>Наценки</td>
+                    </tr>
+                    <tr style={{ background: '#fffbeb' }}>
+                      <td style={{ padding: '6px 8px', textAlign: 'center', border: '1px solid #e2e8f0' }}>—</td>
+                      <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>Наценка {data.markup}% (на изделие)</td>
+                      <td colSpan={3} style={{ border: '1px solid #e2e8f0' }}></td>
+                      <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, border: '1px solid #e2e8f0', whiteSpace: 'nowrap', color: '#d97706' }}>{data.markupAmt.toLocaleString('ru-RU')} ₽</td>
+                    </tr>
+                  </>
+                )}
+
+                {/* Итого */}
+                <tr style={{ background: '#0A70E8' }}>
+                  <td colSpan={5} style={{ padding: '10px 12px', fontWeight: 800, color: 'white', fontSize: 14, border: '1px solid #0A70E8' }}>ИТОГО К ОПЛАТЕ</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 900, color: 'white', fontSize: 16, border: '1px solid #0A70E8', whiteSpace: 'nowrap' }}>{fmt(data.total)}</td>
                 </tr>
               </tbody>
             </table>
@@ -720,12 +1041,17 @@ export default function Index() {
   const [activeTab, setActiveTab] = useState<'calc' | 'history' | 'users' | 'admin'>('calc');
 
   // Вес ворот
-  const [steelWeightM2, setSteelWeightM2] = useState(25); // кг/м² стальной каркас
-  const [fillWeightM2, setFillWeightM2]   = useState(5);  // кг/м² заполнение (зависит от типа)
+  const [steelWeightM2, setSteelWeightM2] = useState(FRAME_WEIGHT_KG_M2);
   // Направление распашных (внутрь/наружу)
   const [swingDir, setSwingDir] = useState<'inward' | 'outward'>('outward');
   // Тип заполнения по количеству сторон
   const [fillSides, setFillSides] = useState<'none' | 'single' | 'double'>('single');
+  // Цвет заполнения RAL
+  const [fillColor, setFillColor] = useState('RAL 7016');
+  const [fillColorHex, setFillColorHex] = useState('#293133');
+  const [fillColorName, setFillColorName] = useState('Антрацитово-серый');
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [colorSearch, setColorSearch] = useState('');
   // Доп. работы (ручной ввод)
   const [customWorks, setCustomWorks] = useState<{id: string; label: string; price: number}[]>([]);
 
@@ -896,10 +1222,14 @@ export default function Index() {
   const curFillItem = fillItems.find(i => i.id === fillType);
   const fillPr  = getFillPrice(fillType) * totalArea;
 
-  // Вес ворот
+  // Вес ворот — каркас + заполнение по типу
   const fillSidesCoef = fillSides === 'double' ? 2 : fillSides === 'none' ? 0 : 1;
-  const gateWeight = Math.round(gateArea * steelWeightM2 + gateArea * fillWeightM2 * fillSidesCoef);
-  const wicketWeight = hasWicket ? Math.round(wicketArea * steelWeightM2 + wicketArea * fillWeightM2 * fillSidesCoef) : 0;
+  const fillWeightKgM2 = FILL_WEIGHT_KG_M2[fillType] ?? 5;
+  const gateWeightTotal = Math.round(gateArea * steelWeightM2 + gateArea * fillWeightKgM2 * fillSidesCoef);
+  const wicketWeightTotal = hasWicket ? Math.round(wicketArea * steelWeightM2 + wicketArea * fillWeightKgM2 * fillSidesCoef) : 0;
+  // Обратная совместимость
+  const gateWeight = gateWeightTotal;
+  const wicketWeight = wicketWeightTotal;
   // Цена заполнения с учётом сторон
   const fillPrActual = fillSides === 'none' ? 0 : fillPr * fillSidesCoef;
 
@@ -974,6 +1304,9 @@ export default function Index() {
       installAuto, installFill, installGate, installFrame, installWicket,
       isNonStd, lineItems: kpLineItems, subtotal, markup, markupAmt, total,
       gateArea, wicketArea, fillLabel: curFillLabel,
+      fillSides, fillColor, fillColorName,
+      gateWeightTotal, wicketWeightTotal,
+      swingDir,
       sketchSvg,
       savedAt: new Date().toLocaleString('ru-RU'),
     };
@@ -1106,23 +1439,23 @@ export default function Index() {
                   <span className="font-mono text-sm" style={{ color: 'hsl(var(--foreground))' }}>{gateArea.toFixed(2)} м²</span>
                 </div>
                 {/* Вес ворот */}
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <div>
-                    <FieldLabel>Каркас, кг/м²</FieldLabel>
+                <div className="mt-2">
+                  <div className="mb-2">
+                    <FieldLabel>Вес каркаса, кг/м² <span style={{ color: 'var(--steel)', fontWeight: 400 }}>(трубы, направляющие)</span></FieldLabel>
                     <input type="number" className="field-input" value={steelWeightM2}
                       onChange={e => setSteelWeightM2(Math.max(1, +e.target.value))} min={1} max={100} step={1} />
                   </div>
-                  <div>
-                    <FieldLabel>Заполнение, кг/м²</FieldLabel>
-                    <input type="number" className="field-input" value={fillWeightM2}
-                      onChange={e => setFillWeightM2(Math.max(0, +e.target.value))} min={0} max={50} step={0.5} />
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs"
+                    style={{ background: 'var(--surface-3)', border: '1px solid var(--border-subtle)', color: 'var(--steel)' }}>
+                    <Icon name="Info" size={12} />
+                    Вес заполнения подставляется автоматически по типу материала
                   </div>
                 </div>
                 <div className="flex justify-between items-center px-3 py-2 rounded-lg mt-2"
                   style={{ background: 'rgba(10,112,232,0.06)', border: '1px solid rgba(10,112,232,0.18)' }}>
                   <span className="text-xs font-medium" style={{ color: 'var(--blue)' }}>Расчётный вес полотна</span>
                   <span className="font-mono text-sm font-bold" style={{ color: 'var(--blue)' }}>
-                    ~{gateWeight} кг{hasWicket ? ` + ${wicketWeight} кг (калитка)` : ''}
+                    ~{gateWeightTotal} кг{hasWicket ? ` + ~${wicketWeightTotal} кг (калитка)` : ''}
                   </span>
                 </div>
               </div>
@@ -1290,13 +1623,70 @@ export default function Index() {
                     </button>
                   ))}
                 </div>
-                <div className="flex justify-between items-center px-3 py-2 rounded-lg"
+                <div className="flex justify-between items-center px-3 py-2 rounded-lg mb-3"
                   style={{ background: 'var(--surface-3)', border: '1px solid var(--border-subtle)' }}>
                   <span className="text-xs" style={{ color: 'var(--steel)' }}>
                     {getFillPrice(fillType).toLocaleString('ru-RU')} ₽/м² × {totalArea.toFixed(2)} м²
+                    {fillSides !== 'none' && <span className="ml-1">· вес ~{(fillWeightKgM2 * fillSidesCoef).toFixed(1)} кг/м²</span>}
                   </span>
                   <span className="font-mono text-sm price-tag">{fmt(fillPrActual)}</span>
                 </div>
+
+                {/* Цвет заполнения RAL */}
+                {fillSides !== 'none' && (
+                  <div className="relative">
+                    <FieldLabel>Цвет заполнения</FieldLabel>
+                    {/* Быстрые цвета Alutech */}
+                    <div className="flex flex-wrap gap-1.5 mb-2">
+                      {ALUTECH_COLORS.map(c => (
+                        <button key={c.ral} title={`${c.ral} — ${c.name}`}
+                          onClick={() => { setFillColor(c.ral); setFillColorHex(c.hex); setFillColorName(c.name); setShowColorPicker(false); }}
+                          className="w-7 h-7 rounded-md border-2 transition-all hover:scale-110"
+                          style={{
+                            background: c.hex,
+                            borderColor: fillColor === c.ral ? 'var(--blue)' : 'transparent',
+                            boxShadow: fillColor === c.ral ? '0 0 0 2px var(--blue)' : '0 0 0 1px #cbd5e1',
+                          }} />
+                      ))}
+                      <button onClick={() => setShowColorPicker(v => !v)}
+                        className="w-7 h-7 rounded-md border-2 flex items-center justify-center text-xs font-bold transition-all"
+                        style={{ borderColor: 'var(--border-subtle)', color: 'var(--steel)', background: 'var(--surface-3)' }}
+                        title="Вся палитра RAL">
+                        +
+                      </button>
+                    </div>
+                    {/* Выбранный цвет */}
+                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg mb-2"
+                      style={{ background: 'var(--surface-3)', border: '1px solid var(--border-subtle)' }}>
+                      <div className="w-5 h-5 rounded flex-shrink-0" style={{ background: fillColorHex, border: '1px solid #cbd5e1' }} />
+                      <span className="text-xs font-mono font-semibold" style={{ color: 'var(--blue)' }}>{fillColor}</span>
+                      <span className="text-xs" style={{ color: 'var(--steel)' }}>{fillColorName}</span>
+                    </div>
+                    {/* Полная палитра RAL */}
+                    {showColorPicker && (
+                      <div className="absolute z-30 left-0 right-0 rounded-xl p-3 animate-scale-in"
+                        style={{ background: 'white', border: '1px solid var(--border-subtle)', boxShadow: '0 16px 48px rgba(15,23,42,0.15)', top: '100%', marginTop: 4 }}>
+                        <input type="text" placeholder="Поиск RAL..." value={colorSearch}
+                          onChange={e => setColorSearch(e.target.value)}
+                          className="field-input mb-3" style={{ fontSize: 12, padding: '6px 10px' }} />
+                        <div className="flex flex-wrap gap-1 max-h-48 overflow-y-auto">
+                          {RAL_PALETTE.filter(c =>
+                            !colorSearch || c.ral.toLowerCase().includes(colorSearch.toLowerCase()) || c.name.toLowerCase().includes(colorSearch.toLowerCase())
+                          ).map(c => (
+                            <button key={c.ral} title={`${c.ral} — ${c.name}`}
+                              onClick={() => { setFillColor(c.ral); setFillColorHex(c.hex); setFillColorName(c.name); setShowColorPicker(false); setColorSearch(''); }}
+                              className="w-7 h-7 rounded border-2 transition-all hover:scale-110 flex-shrink-0"
+                              style={{
+                                background: c.hex,
+                                borderColor: fillColor === c.ral ? 'var(--blue)' : 'transparent',
+                                boxShadow: fillColor === c.ral ? '0 0 0 2px var(--blue)' : '0 0 0 1px #e2e8f0',
+                              }} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* 6. Монтаж */}

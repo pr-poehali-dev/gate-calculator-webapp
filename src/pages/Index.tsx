@@ -774,9 +774,7 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
 
                 {/* Итого изделий */}
                 <tr style={{ background: '#f0f4ff' }}>
-                  <td colSpan={5} style={{ padding: '6px 8px', fontWeight: 700, fontSize: 12, border: '1px solid #c8d8f0', color: '#1e3a8a', textAlign: 'right' }}>
-                    Стоимость изделий{data.markup > 0 ? ` (с наценкой +${data.markup}%)` : ''}
-                  </td>
+                  <td colSpan={5} style={{ padding: '6px 8px', fontWeight: 700, fontSize: 12, border: '1px solid #c8d8f0', color: '#1e3a8a', textAlign: 'right' }}>Стоимость изделий</td>
                   <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, border: '1px solid #c8d8f0', whiteSpace: 'nowrap', color: '#1e3a8a' }}>{productTotalWithMarkup.toLocaleString('ru-RU')} ₽</td>
                 </tr>
 

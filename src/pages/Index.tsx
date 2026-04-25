@@ -482,8 +482,9 @@ interface KpData {
   installAuto: boolean; installFill: boolean; installGate: boolean;
   installFrame: boolean; installWicket: boolean;
   isNonStd: boolean;
-  lineItems: { label: string; value: number }[];
+  lineItems: { label: string; value: number; isInstall?: boolean; isDiscount?: boolean }[];
   subtotal: number; markup: number; markupAmt: number; total: number;
+  markupCoef: number; // коэффициент (1 + markup/100), применяется к изделиям в КП
   gateArea: number; wicketArea: number;
   fillLabel: string;
   fillSides: 'none' | 'single' | 'double';
@@ -509,8 +510,18 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
   const vendorLabel = (data.vendor ?? 'none') === 'alutech' ? 'Алютех' : null;
   const openDirLabel = data.openDir === 'left' ? 'Влево' : 'Вправо';
   const swingDirLabel = (data.swingDir ?? 'outward') === 'outward' ? 'Наружу' : 'Внутрь';
-  const productLines = data.lineItems.filter(r => !(r as {isInstall?:boolean}).isInstall);
-  const installLines = data.lineItems.filter(r => (r as {isInstall?:boolean}).isInstall);
+
+  // Коэффициент наценки — применяется к каждой изделийной позиции
+  const mc = data.markupCoef ?? 1;
+  // Строки изделий (не монтаж, не скидка)
+  const productLines = data.lineItems.filter(r => !r.isInstall && !r.isDiscount);
+  const installLines = data.lineItems.filter(r => r.isInstall);
+  const discountLine = data.lineItems.find(r => r.isDiscount);
+
+  // Итоговая сумма изделий с наценкой
+  const productTotalWithMarkup = Math.round(productLines.reduce((s, r) => s + r.value, 0) * mc);
+  const installTotal = installLines.reduce((s, r) => s + r.value, 0);
+  const grandTotal = productTotalWithMarkup + installTotal;
 
   const handlePrint = () => {
     const el = printRef.current;
@@ -579,39 +590,43 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
         </tr>
       </thead>
       <tbody>
-        <!-- Основное изделие -->
-        <tr>
-          <td class="td-num">1</td>
-          <td class="td-name">
-            <b>Ворота ${gateTypeLabel} ${(data.gateW/1000).toFixed(2)}×${(data.gateH/1000).toFixed(2)} м</b>
-            <span class="weight-badge">~${data.gateWeightTotal ?? '—'} кг</span>
-            ${vendorLabel ? `<span style="display:inline-block;background:#f0f7ff;border:1px solid #0A70E8;border-radius:3px;padding:1px 6px;font-size:10px;color:#0A70E8;font-weight:700;margin-left:4px;">Алютех</span>` : ''}
-          </td>
-          <td class="td-price">${productLines.reduce((s,r)=>s+r.value,0).toLocaleString('ru-RU')}</td>
-          <td class="td-qty">1</td>
-          <td class="td-unit">шт.</td>
-          <td class="td-sum">${productLines.reduce((s,r)=>s+r.value,0).toLocaleString('ru-RU')}</td>
+        <!-- Позиции изделий с наценкой -->
+        ${productLines.map((r, i) => {
+          const priceWithMarkup = Math.round(r.value * mc);
+          return `<tr style="${i % 2 === 1 ? 'background:#f8fafc;' : ''}">
+            <td class="td-num">${i + 1}</td>
+            <td class="td-name">${r.label}${i === 0 ? `
+              <div style="font-size:10px;color:#555;margin-top:2px;">
+                ${[
+                  `Ширина: ${data.gateW} мм · Высота: ${data.gateH} мм`,
+                  `Площадь: ${data.gateArea.toFixed(2)} м²${data.hasWicket ? ` + ${data.wicketArea.toFixed(2)} м² (калитка)` : ''}`,
+                  `Тип открывания: ${gateTypeLabel}`,
+                  `Заполнение: ${data.fillLabel} — ${fillSidesLabel}`,
+                  ...(data.fillColor && data.fillSides !== 'none' ? [`Цвет: ${data.fillColor} — ${data.fillColorName}`] : []),
+                  ...(data.fillSides !== 'none' ? [`Покраска: ${paintLabel}`] : []),
+                  ...(vendorLabel ? [`Производитель: ${vendorLabel}`] : []),
+                  ...(data.isNonStd ? [`⚠ Нестандартный размер (надбавка)`] : []),
+                  `Вес: ~${data.gateWeightTotal ?? '—'} кг`,
+                ].join(' · ')}
+              </div>` : ''}</td>
+            <td class="td-price">${priceWithMarkup.toLocaleString('ru-RU')}</td>
+            <td class="td-qty">1</td>
+            <td class="td-unit">шт.</td>
+            <td class="td-sum">${priceWithMarkup.toLocaleString('ru-RU')}</td>
+          </tr>`;
+        }).join('')}
+
+        <!-- Итого изделий -->
+        <tr style="background:#f0f4ff;">
+          <td colspan="5" style="padding:6px 8px;text-align:right;font-weight:700;border:1px solid #c0cce0;color:#1e3a8a;">Стоимость изделий (с наценкой ${data.markup > 0 ? `+${data.markup}%` : ''})</td>
+          <td class="td-sum" style="color:#1e3a8a;border:1px solid #c0cce0;">${productTotalWithMarkup.toLocaleString('ru-RU')} ₽</td>
         </tr>
-        <!-- Спецификация -->
-        <tr class="spec-row"><td colspan="6">Ширина проёма: ${data.gateW} мм</td></tr>
-        <tr class="spec-row"><td colspan="6">Высота полотна: ${data.gateH} мм</td></tr>
-        <tr class="spec-row"><td colspan="6">Площадь: ${data.gateArea.toFixed(2)} м²${data.hasWicket ? ` + ${data.wicketArea.toFixed(2)} м² (калитка)` : ''}</td></tr>
-        <tr class="spec-row"><td colspan="6">Вес конструкции: ~${data.gateWeightTotal ?? '—'} кг${data.hasWicket && data.wicketWeightTotal ? ` + ~${data.wicketWeightTotal} кг (калитка)` : ''}</td></tr>
-        <tr class="spec-row"><td colspan="6">Тип открывания: ${gateTypeLabel}${data.gateType === 'swing' || data.gateType === 'swing_wicket' ? ` — ${swingDirLabel}, петли ${openDirLabel.toLowerCase()}` : ` — ${openDirLabel}`}</td></tr>
-        <tr class="spec-row"><td colspan="6">Заполнение: ${data.fillLabel} — ${fillSidesLabel}, направление ${data.fillDir === 'horizontal' ? 'горизонтальное' : 'вертикальное'}</td></tr>
-        ${data.fillColor && data.fillSides !== 'none' ? `<tr class="spec-row"><td colspan="6">Цвет заполнения: ${data.fillColor} — ${data.fillColorName}</td></tr>` : ''}
-        ${data.fillSides !== 'none' ? `<tr class="spec-row"><td colspan="6">Тип покраски: ${paintLabel}</td></tr>` : ''}
-        ${vendorLabel ? `<tr class="spec-row"><td colspan="6">Производитель комплектующих: ${vendorLabel}</td></tr>` : ''}
-        ${data.isNonStd ? `<tr class="spec-row"><td colspan="6"><b style="color:#c00">Площадь ${data.gateArea.toFixed(2)} м² — надбавка за нестандарт</b></td></tr>` : ''}
-        ${data.hasWicket ? `<tr class="spec-row"><td colspan="6">Калитка: ${(data.wicketW/1000).toFixed(2)}×${(data.wicketH/1000).toFixed(2)} м</td></tr>` : ''}
-        ${data.autoLabel && data.autoLabel !== 'Без автоматики' ? `<tr class="spec-row"><td colspan="6">Автоматика: ${data.autoLabel}</td></tr>` : ''}
-        ${data.extras.map(e => `<tr class="spec-row"><td colspan="6">Доп. опция: ${e}</td></tr>`).join('')}
 
         ${installLines.length > 0 ? `
-        <tr class="section-header"><td colspan="6">Монтажные работы</td></tr>
-        ${installLines.map((r,i) => `
+        <tr class="section-header"><td colspan="6">Монтажные работы (без наценки)</td></tr>
+        ${installLines.map((r, i) => `
         <tr>
-          <td class="td-num">${i+2}</td>
+          <td class="td-num">${productLines.length + i + 1}</td>
           <td class="td-name">${r.label}</td>
           <td class="td-price">${r.value.toLocaleString('ru-RU')}</td>
           <td class="td-qty">1</td>
@@ -622,12 +637,12 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
         ${(data.discount ?? 0) > 0 ? `
         <tr style="background:#f0fdf4;">
           <td colspan="5" style="padding:6px 8px;text-align:right;color:#16a34a;font-weight:600;border:1px solid #e2e8f0;">Скидка ${data.discount}% (на изделие)</td>
-          <td style="padding:6px 8px;text-align:right;font-family:monospace;font-weight:700;color:#16a34a;border:1px solid #e2e8f0;white-space:nowrap;">-${(data.discountAmt ?? 0).toLocaleString('ru-RU')} ₽</td>
+          <td style="padding:6px 8px;text-align:right;font-family:monospace;font-weight:700;color:#16a34a;border:1px solid #e2e8f0;white-space:nowrap;">−${(data.discountAmt ?? 0).toLocaleString('ru-RU')} ₽</td>
         </tr>` : ''}
 
         <tr class="total-final">
-          <td colspan="5">ИТОГО К ОПЛАТЕ</td>
-          <td class="td-sum" style="font-size:14px">${data.total.toLocaleString('ru-RU')} ₽</td>
+          <td colspan="5">ИТОГО К ОПЛАТЕ (под ключ)</td>
+          <td class="td-sum" style="font-size:14px">${grandTotal.toLocaleString('ru-RU')} ₽</td>
         </tr>
       </tbody>
     </table>
@@ -727,55 +742,53 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
                 </tr>
               </thead>
               <tbody>
-                {/* Строка изделия */}
-                <tr>
-                  <td style={{ padding: '7px 8px', textAlign: 'center', fontWeight: 700, border: '1px solid #e2e8f0' }}>1</td>
-                  <td style={{ padding: '7px 8px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ fontWeight: 700, marginBottom: 2 }}>
-                      Ворота {gateTypeLabel} {(data.gateW/1000).toFixed(2)}×{(data.gateH/1000).toFixed(2)} м
-                      <span style={{ display: 'inline-block', background: '#e8f0fb', border: '1px solid #0A70E8', borderRadius: 3, padding: '1px 6px', fontSize: 10, color: '#0A70E8', fontWeight: 700, marginLeft: 6 }}>~{data.gateWeightTotal ?? '—'} кг</span>
-                    </div>
-                    {vendorLabel && (
-                      <span style={{ display: 'inline-block', background: '#f0f7ff', border: '1px solid #0A70E8', borderRadius: 3, padding: '1px 6px', fontSize: 10, color: '#0A70E8', fontWeight: 700, marginLeft: 6 }}>Алютех</span>
-                    )}
-                    {/* Спецификация */}
-                    {[
-                      `Ширина проёма: ${data.gateW} мм`,
-                      `Высота полотна: ${data.gateH} мм`,
-                      `Площадь: ${data.gateArea.toFixed(2)} м²${data.hasWicket ? ` + ${data.wicketArea.toFixed(2)} м² (калитка)` : ''}`,
-                      `Вес конструкции: ~${data.gateWeightTotal ?? '—'} кг${data.hasWicket && data.wicketWeightTotal ? ` + ~${data.wicketWeightTotal} кг (калитка)` : ''}`,
-                      ...(data.gateType === 'swing' || data.gateType === 'swing_wicket' ? [`Направление открытия: ${swingDirLabel}, петли ${openDirLabel.toLowerCase()}`] : [`Направление откатывания: ${openDirLabel}`]),
-                      `Заполнение: ${data.fillLabel} — ${fillSidesLabel}, ${data.fillDir === 'horizontal' ? 'горизонтальное' : 'вертикальное'}`,
-                      ...(data.fillColor && data.fillSides !== 'none' ? [`Цвет: ${data.fillColor} — ${data.fillColorName}`] : []),
-                      ...(data.fillSides !== 'none' ? [`Тип покраски: ${paintLabel}`] : []),
-                      ...(vendorLabel ? [`Производитель комплектующих: ${vendorLabel}`] : []),
-                      ...(data.isNonStd ? [`⚠ Площадь ${data.gateArea.toFixed(2)} м² — надбавка за нестандарт`] : []),
-                      ...(data.hasWicket ? [`Калитка: ${(data.wicketW/1000).toFixed(2)}×${(data.wicketH/1000).toFixed(2)} м`] : []),
-                      ...(data.autoLabel !== 'Без автоматики' ? [`Автоматика: ${data.autoLabel}`] : []),
-                      ...data.extras.map(e => `Доп. опция: ${e}`),
-                    ].map((s, i) => (
-                      <div key={i} style={{ fontSize: 11, color: s.startsWith('⚠') ? '#c00' : '#555', paddingLeft: 8 }}>{s}</div>
-                    ))}
+                {/* Позиции изделий — каждая с наценкой */}
+                {productLines.map((row, i) => {
+                  const priceWithMarkup = Math.round(row.value * mc);
+                  return (
+                    <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f8fafc' }}>
+                      <td style={{ padding: '7px 8px', textAlign: 'center', fontWeight: 700, border: '1px solid #e2e8f0' }}>{i + 1}</td>
+                      <td style={{ padding: '7px 8px', border: '1px solid #e2e8f0' }}>
+                        <div style={{ fontWeight: 600, fontSize: 12 }}>{row.label}</div>
+                        {i === 0 && (
+                          <div style={{ fontSize: 10, color: '#666', marginTop: 2, lineHeight: 1.5 }}>
+                            {[
+                              `${data.gateW} × ${data.gateH} мм`,
+                              `${data.gateArea.toFixed(2)} м²${data.hasWicket ? ` + ${data.wicketArea.toFixed(2)} м² (калитка)` : ''}`,
+                              `${data.fillLabel} — ${fillSidesLabel}`,
+                              data.fillColor && data.fillSides !== 'none' ? `${data.fillColor}` : null,
+                              data.fillSides !== 'none' ? paintLabel : null,
+                              vendorLabel,
+                              data.isNonStd ? `⚠ надбавка (нестандарт)` : null,
+                            ].filter(Boolean).join(' · ')}
+                          </div>
+                        )}
+                      </td>
+                      <td style={{ padding: '7px 8px', textAlign: 'right', fontFamily: 'monospace', border: '1px solid #e2e8f0', whiteSpace: 'nowrap', fontSize: 12 }}>{priceWithMarkup.toLocaleString('ru-RU')}</td>
+                      <td style={{ padding: '7px 8px', textAlign: 'center', border: '1px solid #e2e8f0' }}>1</td>
+                      <td style={{ padding: '7px 8px', textAlign: 'center', border: '1px solid #e2e8f0' }}>шт.</td>
+                      <td style={{ padding: '7px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, border: '1px solid #e2e8f0', whiteSpace: 'nowrap', fontSize: 12 }}>{priceWithMarkup.toLocaleString('ru-RU')} ₽</td>
+                    </tr>
+                  );
+                })}
+
+                {/* Итого изделий */}
+                <tr style={{ background: '#f0f4ff' }}>
+                  <td colSpan={5} style={{ padding: '6px 8px', fontWeight: 700, fontSize: 12, border: '1px solid #c8d8f0', color: '#1e3a8a', textAlign: 'right' }}>
+                    Стоимость изделий{data.markup > 0 ? ` (с наценкой +${data.markup}%)` : ''}
                   </td>
-                  <td style={{ padding: '7px 8px', textAlign: 'right', fontFamily: 'monospace', border: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}>
-                    {Math.round(productLines.reduce((s,r)=>s+r.value,0)).toLocaleString('ru-RU')}
-                  </td>
-                  <td style={{ padding: '7px 8px', textAlign: 'center', border: '1px solid #e2e8f0' }}>1</td>
-                  <td style={{ padding: '7px 8px', textAlign: 'center', border: '1px solid #e2e8f0' }}>шт.</td>
-                  <td style={{ padding: '7px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, border: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}>
-                    {Math.round(productLines.reduce((s,r)=>s+r.value,0)).toLocaleString('ru-RU')} ₽
-                  </td>
+                  <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, border: '1px solid #c8d8f0', whiteSpace: 'nowrap', color: '#1e3a8a' }}>{productTotalWithMarkup.toLocaleString('ru-RU')} ₽</td>
                 </tr>
 
-                {/* Монтажные работы */}
+                {/* Монтажные работы — без наценки */}
                 {installLines.length > 0 && (
                   <tr style={{ background: '#f5f5f5' }}>
-                    <td colSpan={6} style={{ padding: '5px 8px', fontWeight: 700, fontSize: 11, border: '1px solid #e2e8f0', color: '#374151' }}>Монтажные работы</td>
+                    <td colSpan={6} style={{ padding: '5px 8px', fontWeight: 700, fontSize: 11, border: '1px solid #e2e8f0', color: '#374151' }}>Монтажные работы (без наценки)</td>
                   </tr>
                 )}
                 {installLines.map((row, i) => (
-                  <tr key={i} style={{ background: i % 2 === 0 ? 'white' : '#f8fafc' }}>
-                    <td style={{ padding: '6px 8px', textAlign: 'center', fontWeight: 700, border: '1px solid #e2e8f0' }}>{i + 2}</td>
+                  <tr key={i} style={{ background: 'white' }}>
+                    <td style={{ padding: '6px 8px', textAlign: 'center', fontWeight: 700, border: '1px solid #e2e8f0' }}>{productLines.length + i + 1}</td>
                     <td style={{ padding: '6px 8px', border: '1px solid #e2e8f0' }}>{row.label}</td>
                     <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'monospace', border: '1px solid #e2e8f0', whiteSpace: 'nowrap' }}>{row.value.toLocaleString('ru-RU')}</td>
                     <td style={{ padding: '6px 8px', textAlign: 'center', border: '1px solid #e2e8f0' }}>1</td>
@@ -785,17 +798,17 @@ function KpModal({ data, onClose }: { data: KpData; onClose: () => void }) {
                 ))}
 
                 {/* Скидка */}
-                {(data.discount ?? 0) > 0 && (
+                {discountLine && (
                   <tr style={{ background: '#f0fdf4' }}>
-                    <td colSpan={5} style={{ padding: '6px 8px', fontWeight: 600, fontSize: 12, border: '1px solid #e2e8f0', color: '#16a34a', textAlign: 'right' }}>Скидка {data.discount}% (на изделие)</td>
-                    <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, border: '1px solid #e2e8f0', whiteSpace: 'nowrap', color: '#16a34a' }}>-{(data.discountAmt ?? 0).toLocaleString('ru-RU')} ₽</td>
+                    <td colSpan={5} style={{ padding: '6px 8px', fontWeight: 600, fontSize: 12, border: '1px solid #e2e8f0', color: '#16a34a', textAlign: 'right' }}>{discountLine.label}</td>
+                    <td style={{ padding: '6px 8px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 700, border: '1px solid #e2e8f0', whiteSpace: 'nowrap', color: '#16a34a' }}>−{discountLine.value.toLocaleString('ru-RU')} ₽</td>
                   </tr>
                 )}
 
-                {/* Итого */}
+                {/* Итого под ключ */}
                 <tr style={{ background: '#0A70E8' }}>
-                  <td colSpan={5} style={{ padding: '10px 12px', fontWeight: 800, color: 'white', fontSize: 14, border: '1px solid #0A70E8' }}>ИТОГО К ОПЛАТЕ</td>
-                  <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 900, color: 'white', fontSize: 16, border: '1px solid #0A70E8', whiteSpace: 'nowrap' }}>{fmt(data.total)}</td>
+                  <td colSpan={5} style={{ padding: '10px 12px', fontWeight: 800, color: 'white', fontSize: 14, border: '1px solid #0A70E8' }}>ИТОГО ПОД КЛЮЧ</td>
+                  <td style={{ padding: '10px 12px', textAlign: 'right', fontFamily: 'monospace', fontWeight: 900, color: 'white', fontSize: 16, border: '1px solid #0A70E8', whiteSpace: 'nowrap' }}>{fmt(grandTotal)}</td>
                 </tr>
               </tbody>
             </table>
@@ -1311,6 +1324,7 @@ export default function Index() {
       React.createElement(GateSketch, {
         width: gateW, height: gateH,
         gateType, fillType, fillDir,
+        fillColor: fillSides !== 'none' ? fillColorHex : undefined,
         openDir, wicketOpenDir,
         hasWicket, wicketWidth: wicketW, wicketHeight: wicketH,
         isOpen: false,
@@ -1326,6 +1340,7 @@ export default function Index() {
       extras: [...extras].map(id => extraItems.find(o => o.id === id)?.label ?? ''),
       installAuto, installFill, installGate, installFrame, installWicket,
       isNonStd, lineItems: kpLineItems, subtotal, markup, markupAmt, total,
+      markupCoef: (1 + markup / 100) * (discount > 0 ? (1 - discount / 100) : 1),
       gateArea, wicketArea, fillLabel: curFillLabel,
       fillSides, fillColor, fillColorName,
       paintType, vendor,
@@ -1871,6 +1886,7 @@ export default function Index() {
                   <GateSketch
                     width={gateW} height={gateH}
                     gateType={gateType} fillType={fillType} fillDir={fillDir}
+                    fillColor={fillSides !== 'none' ? fillColorHex : undefined}
                     openDir={openDir} wicketOpenDir={wicketOpenDir}
                     hasWicket={hasWicket} wicketWidth={wicketW} wicketHeight={wicketH}
                     isOpen={isOpen}
